@@ -1,3 +1,5 @@
+# $ python  happy.py 'define incr 1 adding '  ' 3 9 adding incr '
+
 import re
 import sys
 
@@ -21,9 +23,18 @@ class Happy(object):
     s = NONALFA.sub(' ', s)
     s = s.lower()
     ww = [x for x in s.split(' ') if x not in STOPS]
+    if len(ww) > 1 and ww[0]=='define':
+      self.words[ww[1]] = lambda: self.Eval(ww[2:])
+      return None
+    else:
+      self.Eval(ww)
+      return self.stack
+
+  def Eval(self, ww):
     i = 0
     while i < len(ww):
       w = ww[i]
+      print '<<< <<< <<<' + repr(w)
       if NUMBER.match(w):
         self.stack.append(float(w))
       else:
@@ -31,8 +42,8 @@ class Happy(object):
 	if not f:
           raise Exception('Unknown word: %s' % w)
 	f()
+      print '>>> >>> >>>' + repr(self.stack)
       i+=1
-    return self.stack.pop()
 
 
   def binaryOp(self, op):
@@ -68,5 +79,5 @@ class Happy(object):
 if __name__ == '__main__':
   h = Happy()
   for a in sys.argv[1:]:
-    print '<<<', a
-    print '>>>', h.Do(a)
+    print '<<<' + repr(a)
+    print '>>>' + repr(h.Do(a))
