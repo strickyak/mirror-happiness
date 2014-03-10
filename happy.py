@@ -1,4 +1,7 @@
 # $ python  happy.py 'define incr 1 adding '  ' 3 9 adding incr '
+#
+# $ python  happy.py 'define incr: 1 adding.' 'define double: duplicating adding.' '3 double 9 double adding incr'
+# >>>[25.0]
 
 import re
 import sys
@@ -17,6 +20,7 @@ class Happy(object):
         subtracting=self.subtracting,
         multiplying=self.multiplying,
         dividing=self.dividing,
+        duplicating=self.duplicating,
     )
 
   def Do(self, s):
@@ -65,16 +69,19 @@ class Happy(object):
       return op(y, x)
 
   def adding(self):
-    return self.binaryOp(lambda y, x: y + x)
+    self.binaryOp(lambda y, x: y + x)
 
   def subtracting(self):
-    return self.binaryOp(lambda y, x: y - x)
+    self.binaryOp(lambda y, x: y - x)
 
   def multiplying(self):
-    return self.binaryOp(lambda y, x: y * x)
+    self.binaryOp(lambda y, x: y * x)
 
   def dividing(self):
-    return self.binaryOp(lambda y, x: y / x)
+    self.binaryOp(lambda y, x: y / x)
+
+  def duplicating(self):
+    self.stack.append(self.stack[-1])
 
 if __name__ == '__main__':
   h = Happy()
