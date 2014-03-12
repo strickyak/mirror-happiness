@@ -12,7 +12,7 @@ NUMBER = re.compile('^[0-9]+([.][0-9]+)?$')
 STOPS = set(['', 'the', 'a', 'an', 'number'])
 
 ORDINALS = dict(
-  first=1, second=2, third=3, fourth=4, fifth=5,
+  first=1, second=2, third=3, fourth=4, forth=4, fifth=5,
   sixth=6, seventh=7, eighth=8, nineth=9, tenth=10,
   eleventh=11, twelvth=12,
 )
@@ -76,8 +76,14 @@ class Happy(object):
         # i.e. "foo second" becomes "foo2".
         if i+1 < len(ww) and ww[i+1] in ORDINALS:
           i+=1
-          w += ORDINALS[ww[i]]
+          w += str(ORDINALS[ww[i]])
 
+        # Four prepositions can make compound words.
+        if i+2 < len(ww) and ww[i+1] in ['from', 'of', 'for', 'with']:
+          i+=2
+          w += '_' + ww[i]
+
+        print '=== word = ', w
         f = getattr(self, w, None)
         if not f:
           raise Exception('Unknown word: %s' % w)
@@ -128,6 +134,73 @@ class Happy(object):
     t2 = self.stack.pop()
     self.stack.append(t2[int(t1)])
 
+  def choosing1(self):
+    t = self.stack.pop()
+    self.stack.append(t[0])
+  def choosing2(self):
+    t = self.stack.pop()
+    self.stack.append(t[1])
+  def choosing3(self):
+    t = self.stack.pop()
+    self.stack.append(t[2])
+  def choosing4(self):
+    t = self.stack.pop()
+    self.stack.append(t[3])
+  def choosing5(self):
+    t = self.stack.pop()
+    self.stack.append(t[4])
+
+  def getting1(self):
+    self.stack.append(self.stack[-1])
+  def getting2(self):
+    self.stack.append(self.stack[-2])
+  def getting3(self):
+    self.stack.append(self.stack[-3])
+  def getting4(self):
+    self.stack.append(self.stack[-4])
+  def getting5(self):
+    self.stack.append(self.stack[-5])
+
+  def putting1(self):
+    t = self.stack.pop()
+    self.stack[-1] = t
+  def putting2(self):
+    t = self.stack.pop()
+    self.stack[-2] = t
+  def putting3(self):
+    t = self.stack.pop()
+    self.stack[-3] = t
+  def putting4(self):
+    t = self.stack.pop()
+    self.stack[-4] = t
+  def putting5(self):
+    t = self.stack.pop()
+    self.stack[-5] = t
+
+  def popping(self):
+    self.stack.pop()
+  def popping1(self):
+    self.stack.pop()
+  def popping2(self):
+    self.stack.pop()
+    self.stack.pop()
+  def popping3(self):
+    self.stack.pop()
+    self.stack.pop()
+    self.stack.pop()
+  def popping4(self):
+    self.stack.pop()
+    self.stack.pop()
+    self.stack.pop()
+    self.stack.pop()
+  def popping5(self):
+    self.stack.pop()
+    self.stack.pop()
+    self.stack.pop()
+    self.stack.pop()
+    self.stack.pop()
+
+
 # TESTS
 t = Happy()
 t.Do('define incr: 1 adding.')
@@ -139,6 +212,9 @@ t.Do('must 3: opening 44 55 66 closing sizing')
 t.Do('must 55: opening 44 55 66 closing 1 choosing')
 t.Do('must 2: opening 44 opening 22 33 closing 66 closing 1 choosing sizing')
 t.Do('must 22: opening 44 opening 22 33 closing 66 closing 1 choosing 0 choosing')
+
+t.Do('must 33: 11 22 30 getting third getting third adding putting third popping2')
+
 
 
 # MAIN
