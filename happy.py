@@ -11,26 +11,23 @@ NUMBER = re.compile('^[0-9]+([.][0-9]+)?$')
 
 STOPS = set(['', 'the', 'a', 'an', 'number'])
 
+ORDINALS = dict(
+  first=1, second=2, third=3, fourth=4, fifth=5,
+  sixth=6, seventh=7, eighth=8, nineth=9, tenth=10,
+  eleventh=11, twelvth=12,
+)
+
 class Happy(object):
 
   def __init__(self):
     self.stack = []
-    self.words = dict(
-        adding=self.adding,
-        subtracting=self.subtracting,
-        multiplying=self.multiplying,
-        dividing=self.dividing,
-        duplicating=self.duplicating,
-        sizing=self.sizing,
-        choosing=self.choosing,
-    )
 
   def Do(self, s):
     s = NONALFA.sub(' ', s)
     s = s.lower()
     ww = [x for x in s.split(' ') if x not in STOPS]
     if len(ww) > 1 and ww[0]=='define':
-      self.words[ww[1]] = lambda: self.Eval(ww[2:])
+      setattr(self, ww[1], lambda: self.Eval(ww[2:]))
       return None
     elif len(ww) > 1 and ww[0]=='must':
       want = float(ww[1])
@@ -75,7 +72,13 @@ class Happy(object):
           i+=1
         self.stack.append(vecs[0])
       else:
-        f = self.words.get(w)
+        # Ordinals are special; they append to previous word.
+        # i.e. "foo second" becomes "foo2".
+        if i+1 < len(ww) and ww[i+1] in ORDINALS:
+          i+=1
+          w += ORDINALS[ww[i]]
+
+        f = getattr(self, w, None)
         if not f:
           raise Exception('Unknown word: %s' % w)
         f()
@@ -83,35 +86,35 @@ class Happy(object):
       i+=1
 
 
-  def binaryOp(self, op):
+  def BinaryOp(self, op):
     x = self.stack.pop()
     y = self.stack.pop()
-    self.stack.append(self.binop(y, x, op))
+    self.stack.append(self.Binop(y, x, op))
 
-  def binop(self, y, x, op):
+  def Binop(self, y, x, op):
     if type(y) == list:
       if type(x) == list:
         if len(y) != len(x):
-          raise Exception("binop with differnt len lists: %d vs %d" % (len(y), len(x)))
-        return [op(y1, x1) for y1, x1 in zip(y, x)]
+          raise Exception("Binop with differnt len lists: %d vs %d" % (len(y), len(x)))
+        return [this.Binop(y1, x1, op) for y1, x1 in zip(y, x)]
       else:
-        return [op(y1, x) for y1 in y]
+        return [this.Binop(y1, x, op) for y1 in y]
     elif type(x) == list:
-        return [op(y, x1) for x1 in x]
+        return [this.Binop(y, x1, op) for x1 in x]
     else:
       return op(y, x)
 
   def adding(self):
-    self.binaryOp(lambda y, x: y + x)
+    self.BinaryOp(lambda y, x: y + x)
 
   def subtracting(self):
-    self.binaryOp(lambda y, x: y - x)
+    self.BinaryOp(lambda y, x: y - x)
 
   def multiplying(self):
-    self.binaryOp(lambda y, x: y * x)
+    self.BinaryOp(lambda y, x: y * x)
 
   def dividing(self):
-    self.binaryOp(lambda y, x: y / x)
+    self.BinaryOp(lambda y, x: y / x)
 
   def duplicating(self):
     self.stack.append(self.stack[-1])
