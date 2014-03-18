@@ -3,6 +3,8 @@
 # Voice dictation seems to work well on gerunds,
 # so most builtin words end in -ing.
 #
+# See http://tunes.org/~iepos/joy.html for lots of combinators.
+#
 # $ python  gerund.py 'define incr 1 adding '  ' 3 9 adding incr '
 #
 # $ python  gerund.py 'define incr: 1 adding.' 'define double: duplicating adding.' '3 double 9 double adding incr'
@@ -249,6 +251,36 @@ class Gerund(object):
     self.stack.pop()
     self.stack.pop()
 
+  def swapping(self):
+    t1 = self.stack.pop()
+    t2 = self.stack.pop()
+    self.stack.append(t1)
+    self.stack.append(t2)
+
+  def constructing(self):
+    t1 = self.stack.pop()
+    if type(t1) is not list:
+      raise Exception('"constructing" expected list on top of stack, got %s' % t1)
+    t2 = self.stack.pop()
+    t = [t2] + t1
+    self.stack.append(t)
+
+  def concatenating(self):
+    t1 = self.stack.pop()
+    if type(t1) is not list:
+      raise Exception('"constructing" expected list on top of stack, got %s' % t1)
+    t2 = self.stack.pop()
+    if type(t2) is not list:
+      raise Exception('"constructing" expected list second on stack, got %s' % t1)
+    t = t2 + t1
+    self.stack.append(t)
+
+  def summing(self):
+    t1 = self.stack.pop()
+    if type(t1) is not list:
+      raise Exception('"constructing" expected list on top of stack, got %s' % t1)
+    self.stack.append(sum(t1))
+
   def running(self): # i
     t = self.stack.pop()
     self.Eval(t)
@@ -275,30 +307,48 @@ class Gerund(object):
     self.stack.append(t3)
     self.stack.append(t2)
 
-# TESTS
-t = Gerund()
-t.Run('define incr: 1 adding.')
-t.Run('must 8: 7 incr')
-t.Run('define double: duplicating adding.')
-t.Run('must 88: 44 double')
-t.Run('must 25: 3 double 9 double adding incr')
-t.Run('must 3: opening 44 55 66 closing sizing')
-t.Run('must 55: opening 44 55 66 closing 1 choosing')
-
-t.Run('must 2: opening 44 opening 22 33 closing 66 closing 1 choosing sizing')
-t.Run('must 22: opening 44 opening 22 33 closing 66 closing 1 choosing 0 choosing')
-t.Run('must 33: opening 44 opening 22 33 closing 66 closing choosing2 choosing2')
-
-t.Run('must 33: 11 22 30 getting the third getting the third adding putting the third popping2')
-
-t.Run('must 42: 10 opening 30 2 adding closing running adding')
-t.Run('must 42: 10 opening 4 opening 5 3 adding closing running  multiplying closing running adding')
-t.Run('must 42: 8 10 opening 4 multiplying closing dipping adding')
-t.Run('must 42: 8 6 4 opening 4 multiplying closing dipping the second adding adding')
-t.Run('must 42: 8 6 3 1 opening 4 multiplying closing dipping the third adding adding adding')
 
 # MAIN
 if __name__ == '__main__':
+  # TESTS
+  t = Gerund()
+  t.Run('define incr: 1 adding.')
+  t.Run('must 8: 7 incr')
+  t.Run('define double: duplicating adding.')
+  t.Run('must 88: 44 double')
+  t.Run('must 25: 3 double 9 double adding incr')
+  t.Run('must 3: opening 44 55 66 closing sizing')
+  t.Run('must 55: opening 44 55 66 closing 1 choosing')
+  
+  t.Run('must 2: opening 44 opening 22 33 closing 66 closing 1 choosing sizing')
+  t.Run('must 22: opening 44 opening 22 33 closing 66 closing 1 choosing 0 choosing')
+  t.Run('must 33: opening 44 opening 22 33 closing 66 closing choosing2 choosing2')
+  
+  t.Run('must 33: 11 22 30 getting the third getting the third adding putting the third popping2')
+  
+  t.Run('must 42: 10 opening 30 2 adding closing running adding')
+  t.Run('must 42: 10 opening 4 opening 5 3 adding closing running  multiplying closing running adding')
+  t.Run('must 42: 8 10 opening 4 multiplying closing dipping adding')
+  t.Run('must 42: 8 6 4 opening 4 multiplying closing dipping the second adding adding')
+  t.Run('must 42: 8 6 3 1 opening 4 multiplying closing dipping the third adding adding adding')
+
+  t.Run('must 4: 11 opening 22 33 44 closing constructing sizing')
+  t.Run('must 110: 11 opening 22 33 44 closing constructing summing')
+
+  t.Run('must 4: opening 11 closing opening 22 33 44 closing concatenating sizing')
+  t.Run('must 110: opening 11 closing opening 22 33 44 closing concatenating summing')
+
+  # i == dup dip zap
+  t.Run('Define i1: duplicating dipping popping')
+  t.Run('must 7: opening 3 4 adding closing  i1')
+  # i == [[]] dip dip zap
+  t.Run('Define i2: opening opening closing closing dipping dipping popping')
+  t.Run('must 7: opening 3 4 adding closing  i2')
+  # i == [[]] dip dip dip
+  t.Run('Define i3: opening opening closing closing dipping dipping dipping')
+  t.Run('must 7: opening 3 4 adding closing  i3')
+
+  # Run command line args.
   h = Gerund()
   for a in sys.argv[1:]:
     print '<<<' + repr(a)
