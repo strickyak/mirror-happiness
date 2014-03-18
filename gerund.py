@@ -302,12 +302,16 @@ class Gerund(object):
     t = t2 + t1
     self.stack.append(t)
 
+  def something(self): self.summing()
+  def summation(self): self.summing()
+  def summarizing(self): self.summing()
   def summing(self):
     t = self.stack.pop()
     if type(t) is not list:
       raise Exception('"summing" expected a list on top of stack, got %s' % t)
     self.stack.append(sum(t))
 
+  def productionizing(self): self.productizing()
   def productizing(self):
     t = self.stack.pop()
     if type(t) is not list:

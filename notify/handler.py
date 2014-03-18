@@ -93,8 +93,11 @@ class NotifyHandler(webapp2.RequestHandler):
         break
       elif user_action.get('type') in ['LAUNCH', 'REPLY']:
         note_text = item.get('text', '*NONE*')
-        z = terp.Run(note_text)
-        item['text'] = "( %s )\n%s" % (note_text, z)
+        try:
+          z = terp.Run(note_text)
+        except Exception as ex:
+	  z = "ERROR: %s" % ex
+        item['text'] = "{{ %s }}\n%s" % (note_text, z)
         item['html'] = None
         item['menuItems'] = [{ 'action': 'REPLY' }, { 'action': 'DELETE' }];
 
