@@ -13,6 +13,8 @@
 import re
 import sys
 
+Debug = False
+
 NONALFA = re.compile('[^A-Za-z0-9]+')
 NUMBER = re.compile('^[0-9]+([.][0-9]+)?$')
 
@@ -56,7 +58,7 @@ class Gerund(object):
     i = 0
     while i < len(ww):
       w = ww[i]
-      print '<<< <<< <<<' + repr(w)
+      if Debug: print '<<< <<< <<<' + repr(w)
       if type(w) != str:
         z.append(w)
       elif NUMBER.match(w):
@@ -92,12 +94,12 @@ class Gerund(object):
           w += '_' + ww[i]
 
         # The word should be a method of self.
-        print '=== word = ', w
+        if Debug: print '=== word = ', w
         f = getattr(self, w, None)
         if not f:
           raise Exception('Unknown word: %s' % w)
         z.append(f)
-      print '>>> >>> >>>' + repr(self.stack)
+      if Debug: print '>>> >>> >>>' + repr(self.stack)
       i+=1
     return z
 
@@ -105,14 +107,14 @@ class Gerund(object):
     i = 0
     while i < len(ww):
       w = ww[i]
-      print '<<< <<< <<<' + repr(w)
+      if Debug: print '<<< <<< <<<' + repr(w)
       if callable(w):
         w()
       else:
         # A literal.  Push it on the stack.
         self.stack.append(w)
 
-      print '>>> >>> >>>' + repr(self.stack)
+      if Debug: print '>>> >>> >>>' + repr(self.stack)
       i+=1
 
 
@@ -257,10 +259,19 @@ class Gerund(object):
     self.stack.append(t1)
     self.stack.append(t2)
 
+  def rotating(self):
+    "rotate TOS, 2OS and 3OS, moving 3OS to TOS."  # http://corewar.co.uk/assembly/forth.htm
+    t1 = self.stack.pop()
+    t2 = self.stack.pop()
+    t3 = self.stack.pop()
+    self.stack.append(t2)
+    self.stack.append(t1)
+    self.stack.append(t3)
+
   def constructing(self):
     t1 = self.stack.pop()
     if type(t1) is not list:
-      raise Exception('"constructing" expected list on top of stack, got %s' % t1)
+      raise Exception('"constructing" expected a list on top of stack, got %s' % t1)
     t2 = self.stack.pop()
     t = [t2] + t1
     self.stack.append(t)
@@ -268,18 +279,24 @@ class Gerund(object):
   def concatenating(self):
     t1 = self.stack.pop()
     if type(t1) is not list:
-      raise Exception('"constructing" expected list on top of stack, got %s' % t1)
+      raise Exception('"concatenating" expected a list on top of stack, got %s' % t1)
     t2 = self.stack.pop()
     if type(t2) is not list:
-      raise Exception('"constructing" expected list second on stack, got %s' % t1)
+      raise Exception('"concatenating" expected a list second on stack, got %s' % t1)
     t = t2 + t1
     self.stack.append(t)
 
   def summing(self):
-    t1 = self.stack.pop()
-    if type(t1) is not list:
-      raise Exception('"constructing" expected list on top of stack, got %s' % t1)
-    self.stack.append(sum(t1))
+    t = self.stack.pop()
+    if type(t) is not list:
+      raise Exception('"summing" expected a list on top of stack, got %s' % t)
+    self.stack.append(sum(t))
+
+  def productizing(self):
+    t = self.stack.pop()
+    if type(t) is not list:
+      raise Exception('"productizing" expected a list on top of stack, got %s' % t)
+    self.stack.append(reduce(lambda x,y: x*y, t, 1))
 
   def running(self): # i
     t = self.stack.pop()
@@ -307,9 +324,18 @@ class Gerund(object):
     self.stack.append(t3)
     self.stack.append(t2)
 
+  def sipping(self): # sip
+    t1 = self.stack.pop()
+    t2 = self.stack.pop()
+    self.stack.append(t2)
+    self.Eval(t1)
+    self.stack.append(t2)
 
 # MAIN
 if __name__ == '__main__':
+  import os
+  if os.getenv('Debug'):
+    Debug = True
   # TESTS
   t = Gerund()
   t.Run('define incr: 1 adding.')
@@ -338,18 +364,40 @@ if __name__ == '__main__':
   t.Run('must 4: opening 11 closing opening 22 33 44 closing concatenating sizing')
   t.Run('must 110: opening 11 closing opening 22 33 44 closing concatenating summing')
 
+  t.Run('must 720: opening 1 2 3 4 5 6 closing productizing ')
+  t.Run('must 21: opening 1 2 3 4 5 6 closing summing ')
+
+  # See http://tunes.org/~iepos/joy.html for the following identities.
+
   # i == dup dip zap
-  t.Run('Define i1: duplicating dipping popping')
-  t.Run('must 7: opening 3 4 adding closing  i1')
+  t.Run('Define i111: duplicating dipping popping')
+  t.Run('must 7: opening 3 4 adding closing  i111')
   # i == [[]] dip dip zap
-  t.Run('Define i2: opening opening closing closing dipping dipping popping')
-  t.Run('must 7: opening 3 4 adding closing  i2')
+  t.Run('Define i222: opening opening closing closing dipping dipping popping')
+  t.Run('must 7: opening 3 4 adding closing  i222')
   # i == [[]] dip dip dip
-  t.Run('Define i3: opening opening closing closing dipping dipping dipping')
-  t.Run('must 7: opening 3 4 adding closing  i3')
+  t.Run('Define i333: opening opening closing closing dipping dipping dipping')
+  t.Run('must 7: opening 3 4 adding closing  i333')
+
+  # unit == [] cons
+  t.Run('Define unit111: opening closing constructing')
+  # swap == unit dip
+  t.Run('Define swap111:  unit111 dipping')
+  t.Run('must 7: 3 10  swap111  subtracting')
+  # dip == swap unit cat i
+  t.Run('Define dip111: swapping unit111 concatenating running')
+  t.Run('must 42: 8 10 opening 4 multiplying closing dip111 adding')
+
+  # dup == [] sip
+  t.Run('Define dup222:  opening closing sipping')
+  t.Run('must 0:  17 dup222 subtracting')
+
+  # dip == [[zap zap] sip i] cons sip
+  t.Run('Define dip222:   opening opening popping popping closing sipping running closing constructing sipping')
+  t.Run('must 42: 8 10 opening 4 multiplying closing dip222 adding')
 
   # Run command line args.
   h = Gerund()
   for a in sys.argv[1:]:
-    print '<<<' + repr(a)
-    print '>>>' + repr(h.Run(a))
+    print '<<< ' + repr(a)
+    print '>>> ' + repr(h.Run(a))
