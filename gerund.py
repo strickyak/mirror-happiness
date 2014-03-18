@@ -1,6 +1,11 @@
-# $ python  happy.py 'define incr 1 adding '  ' 3 9 adding incr '
+# Gerund: a joyful language for speech dictation.
 #
-# $ python  happy.py 'define incr: 1 adding.' 'define double: duplicating adding.' '3 double 9 double adding incr'
+# Voice dictation seems to work well on gerunds,
+# so most builtin words end in -ing.
+#
+# $ python  gerund.py 'define incr 1 adding '  ' 3 9 adding incr '
+#
+# $ python  gerund.py 'define incr: 1 adding.' 'define double: duplicating adding.' '3 double 9 double adding incr'
 # >>>[25.0]
 
 import re
@@ -17,42 +22,43 @@ ORDINALS = dict(
   eleventh=11, twelvth=12,
 )
 
-class Happy(object):
+class Gerund(object):
 
   def __init__(self):
     self.stack = []
 
-  def Do(self, s):
+  def Run(self, s):
     s = NONALFA.sub(' ', s)
     s = s.lower()
     ww = [x for x in s.split(' ') if x not in STOPS]
     if len(ww) > 1 and ww[0]=='define':
-      setattr(self, ww[1], lambda: self.Eval(ww[2:]))
+      setattr(self, ww[1], lambda: self.Eval(self.Compile(ww[2:])))
       return None
     elif len(ww) > 1 and ww[0]=='must':
       want = float(ww[1])
       self.stack = []
-      self.Eval(ww[2:])
+      self.Eval(self.Compile(ww[2:]))
       if len(self.stack) != 1:
-        raise Exception('Stack length: wnat 1 got %d ---- %s' % (len(self.stack), self.stack))
+        raise Exception('Stack length: want 1 got %d ---- %s' % (len(self.stack), self.stack))
       got = float(self.stack[-1])
       if want != got:
         raise Exception('"must" Failed: want %s got %s' % (want, got))
       return None
     else:
       self.stack = []
-      self.Eval(ww)
+      self.Eval(self.Compile(ww))
       return self.stack
 
-  def Eval(self, ww):
+  def Compile(self, ww):
+    z = []
     i = 0
     while i < len(ww):
       w = ww[i]
       print '<<< <<< <<<' + repr(w)
       if type(w) != str:
-        self.stack.append(w)
+        z.append(w)
       elif NUMBER.match(w):
-        self.stack.append(float(w))
+        z.append(float(w))
       elif w == 'opening':
         vecs = [ [] ]
         i+=1
@@ -64,13 +70,13 @@ class Happy(object):
               break
             else:
               tmp = vecs.pop()
-              vecs[-1].append(tmp)
+              vecs[-1].append(self.Compile(tmp))
           elif w == 'opening':
             vecs.append([])
           else:
             vecs[-1].append(w)
           i+=1
-        self.stack.append(vecs[0])
+        z.append(self.Compile(vecs[0]))
       else:
         # Ordinals are special; they append to previous word.
         # i.e. "foo second" becomes "foo2".
@@ -83,11 +89,27 @@ class Happy(object):
           i+=2
           w += '_' + ww[i]
 
+        # The word should be a method of self.
         print '=== word = ', w
         f = getattr(self, w, None)
         if not f:
           raise Exception('Unknown word: %s' % w)
-        f()
+        z.append(f)
+      print '>>> >>> >>>' + repr(self.stack)
+      i+=1
+    return z
+
+  def Eval(self, ww):
+    i = 0
+    while i < len(ww):
+      w = ww[i]
+      print '<<< <<< <<<' + repr(w)
+      if callable(w):
+        w()
+      else:
+        # A literal.  Push it on the stack.
+        self.stack.append(w)
+
       print '>>> >>> >>>' + repr(self.stack)
       i+=1
 
@@ -150,6 +172,33 @@ class Happy(object):
     t = self.stack.pop()
     self.stack.append(t[4])
 
+  def changing(self):
+    t1 = self.stack.pop()
+    t2 = self.stack.pop()
+    t3 = self.stack.pop()
+    t3[int(t2)] = t1
+
+  def changing1(self):
+    t1 = self.stack.pop()
+    t3 = self.stack.pop()
+    t3[0] = t1
+  def changing2(self):
+    t1 = self.stack.pop()
+    t3 = self.stack.pop()
+    t3[1] = t1
+  def changing3(self):
+    t1 = self.stack.pop()
+    t3 = self.stack.pop()
+    t3[2] = t1
+  def changing4(self):
+    t1 = self.stack.pop()
+    t3 = self.stack.pop()
+    t3[3] = t1
+  def changing5(self):
+    t1 = self.stack.pop()
+    t3 = self.stack.pop()
+    t3[4] = t1
+
   def getting1(self):
     self.stack.append(self.stack[-1])
   def getting2(self):
@@ -200,26 +249,32 @@ class Happy(object):
     self.stack.pop()
     self.stack.pop()
 
+  def running(self):
+    t = self.stack.pop()
+    self.Eval(t)
 
 # TESTS
-t = Happy()
-t.Do('define incr: 1 adding.')
-t.Do('must 8: 7 incr')
-t.Do('define double: duplicating adding.')
-t.Do('must 88: 44 double')
-t.Do('must 25: 3 double 9 double adding incr')
-t.Do('must 3: opening 44 55 66 closing sizing')
-t.Do('must 55: opening 44 55 66 closing 1 choosing')
-t.Do('must 2: opening 44 opening 22 33 closing 66 closing 1 choosing sizing')
-t.Do('must 22: opening 44 opening 22 33 closing 66 closing 1 choosing 0 choosing')
+t = Gerund()
+t.Run('define incr: 1 adding.')
+t.Run('must 8: 7 incr')
+t.Run('define double: duplicating adding.')
+t.Run('must 88: 44 double')
+t.Run('must 25: 3 double 9 double adding incr')
+t.Run('must 3: opening 44 55 66 closing sizing')
+t.Run('must 55: opening 44 55 66 closing 1 choosing')
 
-t.Do('must 33: 11 22 30 getting third getting third adding putting third popping2')
+t.Run('must 2: opening 44 opening 22 33 closing 66 closing 1 choosing sizing')
+t.Run('must 22: opening 44 opening 22 33 closing 66 closing 1 choosing 0 choosing')
+t.Run('must 33: opening 44 opening 22 33 closing 66 closing choosing2 choosing2')
 
+t.Run('must 33: 11 22 30 getting the third getting the third adding putting the third popping2')
 
+t.Run('must 42: 10 opening 30 2 adding closing running adding')
+t.Run('must 42: 10 opening 4 opening 5 3 adding closing running  multiplying closing running adding')
 
 # MAIN
 if __name__ == '__main__':
-  h = Happy()
+  h = Gerund()
   for a in sys.argv[1:]:
     print '<<<' + repr(a)
-    print '>>>' + repr(h.Do(a))
+    print '>>>' + repr(h.Run(a))
