@@ -29,6 +29,9 @@ from oauth2client.appengine import StorageByKeyName
 from model import Credentials
 import util
 
+from gerund import Gerund
+
+terp = Gerund()
 
 CAT_UTTERANCES = [
     "<em class='green'>Purr...</em>",
@@ -88,21 +91,31 @@ class NotifyHandler(webapp2.RequestHandler):
 
         # Only handle the first successful action.
         break
-      elif user_action.get('type') == 'LAUNCH':
-        # Grab the spoken text from the timeline card and update the card with
-        # an HTML response (deleting the text as well).
-        note_text = item.get('text', '');
-        utterance = choice(CAT_UTTERANCES)
-
-        item['text'] = None
-        item['html'] = ("<article class='auto-paginate'>" +
-            "<p class='text-auto-size'>" +
-            "Oh, did you say " + note_text + "? " + utterance + "</p>" +
-            "<footer><p>Python Quick Start</p></footer></article>")
-        item['menuItems'] = [{ 'action': 'DELETE' }];
+      elif user_action.get('type') in ['LAUNCH', 'REPLY']:
+        note_text = item.get('text', '*NONE*')
+        z = terp.Run(note_text)
+        item['text'] = "( %s )\n%s" % (note_text, z)
+        item['html'] = None
+        item['menuItems'] = [{ 'action': 'REPLY' }, { 'action': 'DELETE' }];
 
         self.mirror_service.timeline().update(
             id=item['id'], body=item).execute()
+
+        if False:
+                # Grab the spoken text from the timeline card and update the card with
+                # an HTML response (deleting the text as well).
+                note_text = item.get('text', '');
+                utterance = choice(CAT_UTTERANCES)
+
+                item['text'] = None
+                item['html'] = ("<article class='auto-paginate'>" +
+                    "<p class='text-auto-size'>" +
+                    "Oh, did you say " + note_text + "? " + utterance + "</p>" +
+                    "<footer><p>Python Quick Start</p></footer></article>")
+                item['menuItems'] = [{ 'action': 'DELETE' }];
+
+                self.mirror_service.timeline().update(
+                    id=item['id'], body=item).execute()
       else:
         logging.info(
             "I don't know what to do with this notification: %s", user_action)

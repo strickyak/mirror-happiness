@@ -11,7 +11,7 @@
 # >>>[25.0]
 
 import re
-import sys
+import logging
 
 Debug = False
 
@@ -34,7 +34,8 @@ class Gerund(object):
   def Run(self, s):
     s = NONALFA.sub(' ', s)
     s = s.lower()
-    ww = [x for x in s.split(' ') if x not in STOPS]
+    ww = [str(x) for x in s.split(' ') if x not in STOPS]
+    logging.info('WORDS = %s', ww)
     if len(ww) > 1 and ww[0]=='define':
       setattr(self, ww[1], lambda: self.Eval(self.Compile(ww[2:])))
       return None
@@ -50,7 +51,10 @@ class Gerund(object):
       return None
     else:
       self.stack = []
-      self.Eval(self.Compile(ww))
+      comp = self.Compile(ww)
+      logging.info('COMPILE = %s', comp)
+      self.Eval(comp)
+      logging.info('STACK = %s', self.stack)
       return self.stack
 
   def Compile(self, ww):
@@ -58,7 +62,6 @@ class Gerund(object):
     i = 0
     while i < len(ww):
       w = ww[i]
-      if Debug: print '<<< <<< <<<' + repr(w)
       if type(w) != str:
         z.append(w)
       elif NUMBER.match(w):
@@ -99,7 +102,6 @@ class Gerund(object):
         if not f:
           raise Exception('Unknown word: %s' % w)
         z.append(f)
-      if Debug: print '>>> >>> >>>' + repr(self.stack)
       i+=1
     return z
 
@@ -154,6 +156,20 @@ class Gerund(object):
   def sizing(self):
     tmp = self.stack.pop()
     self.stack.append(len(tmp))
+
+  def counting(self):
+    t = self.stack.pop()
+    self.stack.append(list(range(int(t))))
+
+  def mapping(self):
+    t1 = self.stack.pop()
+    t2 = self.stack.pop()
+    zz = []
+    for i in t2:
+      self.stack.append(i)
+      self.Eval(t1)
+      zz.append(self.stack.pop())
+    self.stack.append(zz)
 
   def choosing(self):
     t1 = self.stack.pop()
@@ -334,8 +350,11 @@ class Gerund(object):
 # MAIN
 if __name__ == '__main__':
   import os
+  import sys
+
   if os.getenv('Debug'):
     Debug = True
+
   # TESTS
   t = Gerund()
   t.Run('define incr: 1 adding.')
@@ -366,6 +385,9 @@ if __name__ == '__main__':
 
   t.Run('must 720: opening 1 2 3 4 5 6 closing productizing ')
   t.Run('must 21: opening 1 2 3 4 5 6 closing summing ')
+
+  t.Run('must 21: 7 counting summing')
+  t.Run('must 91: 7 counting  opening duplicating multiplying closing mapping summing')
 
   # See http://tunes.org/~iepos/joy.html for the following identities.
 
