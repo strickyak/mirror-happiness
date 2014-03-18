@@ -253,6 +253,12 @@ class Gerund(object):
     t = self.stack.pop()
     self.Eval(t)
 
+  def dipping(self):
+    t1 = self.stack.pop()
+    t2 = self.stack.pop()
+    self.Eval(t1)
+    self.stack.append(t2)
+
 # TESTS
 t = Gerund()
 t.Run('define incr: 1 adding.')
@@ -271,6 +277,7 @@ t.Run('must 33: 11 22 30 getting the third getting the third adding putting the 
 
 t.Run('must 42: 10 opening 30 2 adding closing running adding')
 t.Run('must 42: 10 opening 4 opening 5 3 adding closing running  multiplying closing running adding')
+t.Run('must 42: 8 10 opening 4 multiplying closing dipping adding')
 
 # MAIN
 if __name__ == '__main__':
