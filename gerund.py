@@ -249,14 +249,30 @@ class Gerund(object):
     self.stack.pop()
     self.stack.pop()
 
-  def running(self):
+  def running(self): # i
     t = self.stack.pop()
     self.Eval(t)
 
-  def dipping(self):
+  def dipping(self): # dip
     t1 = self.stack.pop()
     t2 = self.stack.pop()
     self.Eval(t1)
+    self.stack.append(t2)
+  def dipping2(self): # dip2
+    t1 = self.stack.pop()
+    t2 = self.stack.pop()
+    t3 = self.stack.pop()
+    self.Eval(t1)
+    self.stack.append(t3)
+    self.stack.append(t2)
+  def dipping3(self): # dip3
+    t1 = self.stack.pop()
+    t2 = self.stack.pop()
+    t3 = self.stack.pop()
+    t4 = self.stack.pop()
+    self.Eval(t1)
+    self.stack.append(t4)
+    self.stack.append(t3)
     self.stack.append(t2)
 
 # TESTS
@@ -278,6 +294,8 @@ t.Run('must 33: 11 22 30 getting the third getting the third adding putting the 
 t.Run('must 42: 10 opening 30 2 adding closing running adding')
 t.Run('must 42: 10 opening 4 opening 5 3 adding closing running  multiplying closing running adding')
 t.Run('must 42: 8 10 opening 4 multiplying closing dipping adding')
+t.Run('must 42: 8 6 4 opening 4 multiplying closing dipping the second adding adding')
+t.Run('must 42: 8 6 3 1 opening 4 multiplying closing dipping the third adding adding adding')
 
 # MAIN
 if __name__ == '__main__':
