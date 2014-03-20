@@ -34,6 +34,8 @@ from oauth2client.appengine import StorageByKeyName
 
 from model import Credentials
 import util
+import db
+import datetime
 
 
 jinja_environment = jinja2.Environment(
@@ -77,10 +79,16 @@ class _BatchCallback(object):
           'Failed to insert item for user %s: %s', request_id, exception)
 
 
+def hexy(s):
+	return ','.join([ hex(ord(x)) for x in repr(s) ])
+
 class MainHandler(webapp2.RequestHandler):
   """Request Handler for the main endpoint."""
 
   def _render_template(self, message=None):
+    # dt = str(datetime.datetime.utcnow())
+    # db.Store(dt, dt.upper())
+
     """Render the main page template."""
     template_values = {'userId': self.userid}
     if message:
@@ -104,7 +112,7 @@ class MainHandler(webapp2.RequestHandler):
         template_values['locationSubscriptionExists'] = True
 
     template = jinja_environment.get_template('templates/index.html')
-    self.response.out.write(template.render(template_values))
+    self.response.out.write(template.render(template_values) + "<p>(nando)<p>" + hexy(db.Scan()) + repr(db.Scan()) )
 
   @util.auth_required
   def get(self):

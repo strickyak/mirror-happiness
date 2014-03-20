@@ -13,6 +13,11 @@
 import re
 import logging
 
+try:
+  import db
+except:
+  db = None
+
 Debug = False
 
 NONALFA = re.compile('[^A-Za-z0-9]+')
@@ -30,6 +35,10 @@ class Gerund(object):
 
   def __init__(self):
     self.stack = []
+    if db:
+      words = db.Scan()
+      for w in words:
+        setattr(self, w.name, lambda: self.Eval(w.code))
 
   def Run(self, s):
     s = NONALFA.sub(' ', s)
@@ -37,7 +46,13 @@ class Gerund(object):
     ww = [str(x) for x in s.split(' ') if x not in STOPS]
     logging.info('WORDS = %s', ww)
     if len(ww) > 1 and ww[0]=='define':
-      setattr(self, ww[1], lambda: self.Eval(self.Compile(ww[2:])))
+      what = ww[1]
+      cc = self.Compile(ww[2:])
+      setattr(self, what, lambda: self.Eval(ww))
+
+      # Save in db.
+      if db: db.Store(what, cc)
+
       return None
     elif len(ww) > 1 and ww[0]=='must':
       want = float(ww[1])

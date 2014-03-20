@@ -1,0 +1,6 @@
+indexes:
+
+- kind: Word
+  ancestor: yes
+  properties:
+  - name: name
