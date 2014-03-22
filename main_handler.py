@@ -17,6 +17,7 @@
 __author__ = 'alainv@google.com (Alain Vongsouvanh)'
 
 
+import datetime
 import io
 import jinja2
 import logging
@@ -35,8 +36,6 @@ from oauth2client.appengine import StorageByKeyName
 from model import Credentials
 import util
 import db
-import datetime
-
 
 jinja_environment = jinja2.Environment(
     loader=jinja2.FileSystemLoader(os.path.dirname(__file__)))

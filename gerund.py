@@ -12,6 +12,7 @@
 
 import re
 import logging
+import traceback
 
 try:
   import db
@@ -37,8 +38,17 @@ class Gerund(object):
     self.stack = []
     if db:
       words = db.Scan()
-      for w in words:
-        setattr(self, w.name, lambda: self.Eval(w.code))
+      # TODO: this is n^2.  How to order them correctly?
+      for try_len_square_times in words:
+        for w in words:
+          try:
+            cc = self.Compile(eval(w.code))
+            setattr(self, w.name, lambda: self.Eval(cc))
+          except Exception as ex:
+            logging.error('CANNOT Compile: %s ; %s ;;; %s' % (w.name, w.code, ex))
+            logging.error('%s' % traceback.format_exc(20))
+          except:
+            logging.error('CANNOT Compile: %s ; %s ;;; funny exception' % (w.name, w.code))
 
   def Run(self, s):
     s = NONALFA.sub(' ', s)
@@ -48,10 +58,10 @@ class Gerund(object):
     if len(ww) > 1 and ww[0]=='define':
       what = ww[1]
       cc = self.Compile(ww[2:])
-      setattr(self, what, lambda: self.Eval(ww))
+      setattr(self, what, lambda: self.Eval(cc))
 
       # Save in db.
-      if db: db.Store(what, cc)
+      if db: db.Store(what, repr(ww[2:]))
 
       return None
     elif len(ww) > 1 and ww[0]=='must':
@@ -164,6 +174,32 @@ class Gerund(object):
 
   def dividing(self):
     self.BinaryOp(lambda y, x: y / x)
+
+  def moding(self):
+    self.BinaryOp(lambda y, x: y % x)
+  def modding(self):
+    self.BinaryOp(lambda y, x: y % x)
+  def modulo(self):
+    self.BinaryOp(lambda y, x: y % x)
+
+  def equals(self):
+    self.BinaryOp(lambda y, x: y == x)
+  def equalling(self):
+    self.BinaryOp(lambda y, x: y == x)
+
+  def exceeds(self):
+    self.BinaryOp(lambda y, x: y > x)
+  def exceeding(self):
+    self.BinaryOp(lambda y, x: y > x)
+
+  def won(self): self.stack.append(1.0)
+  def one(self): self.stack.append(1.0)
+  def two(self): self.stack.append(2.0)
+  def to(self): self.stack.append(2.0)
+  def too(self): self.stack.append(2.0)
+  def three(self): self.stack.append(3.0)
+  def four(self): self.stack.append(4.0)
+  def five(self): self.stack.append(5.0)
 
   def duplicating(self):
     self.stack.append(self.stack[-1])
@@ -336,6 +372,15 @@ class Gerund(object):
   def running(self): # i
     t = self.stack.pop()
     self.Eval(t)
+
+  def depending(self): # ifte
+    f = self.stack.pop()
+    t = self.stack.pop()
+    c = self.stack.pop()
+    if c:
+      self.Eval(t)
+    else:
+      self.Eval(f)
 
   def dipping(self): # dip
     t1 = self.stack.pop()
