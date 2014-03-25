@@ -1,5 +1,6 @@
 import logging
 
+OKAY = 0
 try:
 	from google.appengine.ext import ndb
 
@@ -18,5 +19,6 @@ try:
 	def Scan():
 		return Word.query(ancestor=Parent).fetch(100)
 
+	OKAY = 250
 except:
 	logging.error("Failed to import NDB")

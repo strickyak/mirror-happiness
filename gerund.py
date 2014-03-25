@@ -16,6 +16,8 @@ import traceback
 
 try:
   import db
+  if not db.OK:
+    db = None
 except:
   db = None
 
@@ -148,20 +150,36 @@ class Gerund(object):
   def BinaryOp(self, op):
     x = self.stack.pop()
     y = self.stack.pop()
-    self.stack.append(self.Binop(y, x, op))
+    self.stack.append(self.RunBinaryOp(y, x, op))
 
-  def Binop(self, y, x, op):
+  def RunBinaryOp(self, y, x, op):
     if type(y) == list:
       if type(x) == list:
         if len(y) != len(x):
-          raise Exception("Binop with differnt len lists: %d vs %d" % (len(y), len(x)))
-        return [this.Binop(y1, x1, op) for y1, x1 in zip(y, x)]
+          raise Exception("RunBinaryOp with differnt len lists: %d vs %d" % (len(y), len(x)))
+        return [self.RunBinaryOp(y1, x1, op) for y1, x1 in zip(y, x)]
       else:
-        return [this.Binop(y1, x, op) for y1 in y]
+        return [self.RunBinaryOp(y1, x, op) for y1 in y]
     elif type(x) == list:
-        return [this.Binop(y, x1, op) for x1 in x]
+        return [self.RunBinaryOp(y, x1, op) for x1 in x]
     else:
       return op(y, x)
+
+  def UnaryOp(self, op):
+    x = self.stack.pop()
+    self.stack.append(self.RunUnaryOp(x, op))
+
+  def RunUnaryOp(self, x, op):
+    if type(x) == list:
+      return [self.RunUnaryOp(x1, op) for x1 in x]
+    else:
+      return op(x)
+
+  def negating(self):
+    self.UnaryOp(lambda x: -x)
+
+  def denying(self):
+    self.UnaryOp(lambda x: int(not bool(x)))
 
   def adding(self):
     self.BinaryOp(lambda y, x: y + x)
@@ -184,7 +202,7 @@ class Gerund(object):
 
   def equals(self):
     self.BinaryOp(lambda y, x: y == x)
-  def equalling(self):
+  def equaling(self):
     self.BinaryOp(lambda y, x: y == x)
 
   def exceeds(self):
@@ -210,22 +228,45 @@ class Gerund(object):
 
   def counting(self):
     t = self.stack.pop()
-    self.stack.append(list(range(int(t))))
+    self.stack.append(list(range(1, 1+int(t))))
+
+  def filtering(self):
+    pred = self.stack.pop()
+    vec = self.stack.pop()
+    zz = []
+    for x in vec:
+      self.stack.append(x)
+      self.Eval(pred)
+      c = self.stack.pop()
+      if c:
+        zz.append(x)
+    self.stack.append(zz)
 
   def mapping(self):
-    t1 = self.stack.pop()
-    t2 = self.stack.pop()
+    code = self.stack.pop()
+    vec = self.stack.pop()
     zz = []
-    for i in t2:
-      self.stack.append(i)
-      self.Eval(t1)
+    for x in vec:
+      self.stack.append(x)
+      self.Eval(code)
       zz.append(self.stack.pop())
     self.stack.append(zz)
+
+  def reducing(self):
+    code = self.stack.pop()
+    current = self.stack.pop()
+    vec = self.stack.pop()
+    for x in vec:
+      self.stack.append(current)
+      self.stack.append(x)
+      self.Eval(code)
+      current = self.stack.pop()
+    self.stack.append(current)
 
   def choosing(self):
     t1 = self.stack.pop()
     t2 = self.stack.pop()
-    self.stack.append(t2[int(t1)])
+    self.stack.append(t2[int(t1) - 1])
 
   def choosing1(self):
     t = self.stack.pop()
@@ -353,6 +394,7 @@ class Gerund(object):
     t = t2 + t1
     self.stack.append(t)
 
+  def reducing_adding(self): self.summing()
   def something(self): self.summing()
   def summation(self): self.summing()
   def summarizing(self): self.summing()
@@ -362,6 +404,7 @@ class Gerund(object):
       raise Exception('"summing" expected a list on top of stack, got %s' % t)
     self.stack.append(sum(t))
 
+  def reducing_multiplying(self): self.productizing()
   def productionizing(self): self.productizing()
   def productizing(self):
     t = self.stack.pop()
@@ -427,10 +470,25 @@ if __name__ == '__main__':
   t.Run('must 88: 44 double')
   t.Run('must 25: 3 double 9 double adding incr')
   t.Run('must 3: opening 44 55 66 closing sizing')
-  t.Run('must 55: opening 44 55 66 closing 1 choosing')
+  t.Run('must 55: opening 44 55 66 closing 2 choosing')
   
-  t.Run('must 2: opening 44 opening 22 33 closing 66 closing 1 choosing sizing')
-  t.Run('must 22: opening 44 opening 22 33 closing 66 closing 1 choosing 0 choosing')
+  t.Run('must 0: 44 denying')
+  t.Run('must 1: 0 denying')
+
+  t.Run('must 3:    opening 111 222 333 closing  10 adding  sizing')
+  t.Run('must 121:  opening 111 222 333 closing  10 adding  choosing1')
+  t.Run('must 343:  opening 111 222 333 closing  10 adding  choosing3')
+
+  t.Run('must 3:    opening 111 222 333 closing  opening 21 31 41 closing  adding  sizing')
+  t.Run('must 132:  opening 111 222 333 closing  opening 21 31 41 closing  adding  choosing1')
+  t.Run('must 374:  opening 111 222 333 closing  opening 21 31 41 closing  adding  choosing3')
+
+  t.Run('must 3:    opening 111 222 333 closing  10 multiplying  sizing')
+  t.Run('must 1110:  opening 111 222 333 closing  10 multiplying  choosing1')
+  t.Run('must 3330:  opening 111 222 333 closing  10 multiplying  choosing3')
+
+  t.Run('must 2: opening 44 opening 22 33 closing 66 closing 2 choosing sizing')
+  t.Run('must 22: opening 44 opening 22 33 closing 66 closing 2 choosing 1 choosing')
   t.Run('must 33: opening 44 opening 22 33 closing 66 closing choosing2 choosing2')
   
   t.Run('must 33: 11 22 30 getting the third getting the third adding putting the third popping2')
@@ -449,9 +507,15 @@ if __name__ == '__main__':
 
   t.Run('must 720: opening 1 2 3 4 5 6 closing productizing ')
   t.Run('must 21: opening 1 2 3 4 5 6 closing summing ')
+  t.Run('must 0: opening closing summing ')
+  t.Run('must 121: opening 1 2 3 4 5 6 closing  100 opening adding closing  reducing')
+  t.Run('must 121: 6 counting  100 opening adding closing  reducing')
+  t.Run('must 100: opening closing  100 opening adding closing  reducing')
 
-  t.Run('must 21: 7 counting summing')
-  t.Run('must 91: 7 counting  opening duplicating multiplying closing mapping summing')
+  t.Run('must 12: 6 counting  opening 2 modulo 0 equaling closing  filtering summing')
+
+  t.Run('must 28: 7 counting summing')
+  t.Run('must 140: 7 counting  opening duplicating multiplying closing mapping summing')
 
   # See http://tunes.org/~iepos/joy.html for the following identities.
 
@@ -481,6 +545,12 @@ if __name__ == '__main__':
   # dip == [[zap zap] sip i] cons sip
   t.Run('Define dip222:   opening opening popping popping closing sipping running closing constructing sipping')
   t.Run('must 42: 8 10 opening 4 multiplying closing dip222 adding')
+
+  t.Run('Define prime:  duplicating counting opening getting2 swapping modulo 0 equaling closing mapping summing 2 equaling swapping popping')
+  t.Run('must 1: 5 prime')
+  t.Run('must 0: 6 prime')
+  t.Run('must 1: 7 prime')
+  t.Run('must 0: 8 prime')
 
   # Run command line args.
   h = Gerund()
