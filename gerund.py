@@ -118,6 +118,11 @@ class Gerund(object):
           i+=1
           w += str(ORDINALS[ww[i]])
 
+	# This has become a problem on Wed Mar 26 2014
+        if i+1 < len(ww) and ww[i+1] == "ing":
+	  i+=1
+	  w += "ing"
+
         # Four prepositions can make compound words.
         if i+2 < len(ww) and ww[i+1] in ['from', 'of', 'for', 'with']:
           i+=2

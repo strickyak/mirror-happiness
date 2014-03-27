@@ -17,6 +17,7 @@
 __author__ = 'alainv@google.com (Alain Vongsouvanh)'
 
 
+import cgi
 import datetime
 import io
 import jinja2
@@ -79,7 +80,7 @@ class _BatchCallback(object):
 
 
 def hexy(s):
-	return ','.join([ hex(ord(x)) for x in repr(s) ])
+  return ','.join([ hex(ord(x)) for x in repr(s) ])
 
 class MainHandler(webapp2.RequestHandler):
   """Request Handler for the main endpoint."""
@@ -111,7 +112,30 @@ class MainHandler(webapp2.RequestHandler):
         template_values['locationSubscriptionExists'] = True
 
     template = jinja_environment.get_template('templates/index.html')
-    self.response.out.write(template.render(template_values) + "<p>(nando)<p>" + hexy(db.Scan()) + repr(db.Scan()) )
+    self.response.out.write(template.render(template_values)) 
+    # + "<p>(nando)<p>" + hexy(db.Scan()) + repr(db.Scan()) )
+
+    recs = db.Scan()
+    self.response.out.write('<ul>')
+    d = dict()
+    for r in sorted(recs):
+      self.response.out.write('<li>' + cgi.escape(repr(r)))
+      self.response.out.write('<br>' + 'Key: ' + cgi.escape(repr(r.key)))
+      #if r.name[:4] == '2014':
+      #  self.response.out.write('<br>' + 'Delete That: ' + cgi.escape(repr(r.name)))
+      # db.Delete(r.name)
+      # self.response.out.write('<br>' + '***DELETED***')
+      ## self.response.out.write('<br>' + 'Dir: ' + cgi.escape(repr(dir(r))))
+      self.response.out.write('<br>' + 'Vars: ' + cgi.escape(repr(vars(r))))
+      #if d.get(r.name):
+      #  r.key.delete()
+      #  self.response.out.write('<br>' + '***DELETED***')
+      #else:
+      #  d[r.name] = r
+      self.response.out.write('<br>')
+
+    self.response.out.write('</ul>')
+      
 
   @util.auth_required
   def get(self):
@@ -281,8 +305,6 @@ class MainHandler(webapp2.RequestHandler):
     # self.mirror_service is initialized in util.auth_required.
     self.mirror_service.timeline().delete(id=self.request.get('itemId')).execute()
     return 'A timeline item has been deleted.'
-	
-
 
 MAIN_ROUTES = [
     ('/', MainHandler)

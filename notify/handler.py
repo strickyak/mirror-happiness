@@ -96,13 +96,30 @@ class NotifyHandler(webapp2.RequestHandler):
         try:
           z = terp.Run(note_text)
         except Exception as ex:
-	  z = "ERROR: %s" % ex
+          z = "ERROR: %s" % ex
         item['text'] = "{{ %s }}\n%s" % (note_text, z)
         item['html'] = None
         item['menuItems'] = [{ 'action': 'REPLY' }, { 'action': 'DELETE' }];
 
         self.mirror_service.timeline().update(
             id=item['id'], body=item).execute()
+
+        if type(z) is list and len(z) > 0:
+          yy = ''
+          for y in z[1]:
+            if type(y) is list and len(y) == 9:
+              yy += ','.join(y) + ',,'
+        
+          if len(yy):
+            body = {
+              'notification': {'level': 'DEFAULT'},
+              'text': '',
+            }
+            resp = urlfetch.fetch(media_link, deadline=10)
+            media = MediaIoBaseUpload(
+              io.BytesIO(resp.content), mimetype='image/jpeg', resumable=True)
+            self.mirror_service.timeline().insert(body=body, media_body=media).execute()
+
 
         if False:
                 # Grab the spoken text from the timeline card and update the card with
