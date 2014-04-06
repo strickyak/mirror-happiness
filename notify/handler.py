@@ -17,6 +17,7 @@
 __author__ = 'alainv@google.com (Alain Vongsouvanh)'
 
 
+import re
 import io
 import json
 import logging
@@ -32,6 +33,8 @@ import util
 from gerund import Gerund
 
 terp = Gerund()
+
+DOUBLE_BRACE = re.compile('{{').search
 
 CAT_UTTERANCES = [
     "<em class='green'>Purr...</em>",
@@ -93,6 +96,9 @@ class NotifyHandler(webapp2.RequestHandler):
         break
       elif user_action.get('type') in ['LAUNCH', 'REPLY']:
         note_text = item.get('text', '*NONE*')
+	if DOUBLE_BRACE(note_text):
+          logging.info("Ignoring Double Bracy Action :::: %s :::: %s" % (note_text, user_action))
+	  return
         try:
           z = terp.Run(note_text)
         except Exception as ex:
