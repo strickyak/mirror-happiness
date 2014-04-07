@@ -38,6 +38,10 @@ from model import Credentials
 import util
 import db
 
+import gerund
+terp = gerund.terp
+
+
 jinja_environment = jinja2.Environment(
     loader=jinja2.FileSystemLoader(os.path.dirname(__file__)))
 
@@ -190,13 +194,19 @@ class MainHandler(webapp2.RequestHandler):
   def _insert_item(self):
     """Insert a timeline item."""
     logging.info('Inserting timeline item')
+
     body = {
         'notification': {'level': 'DEFAULT'}
     }
     if self.request.get('html') == 'on':
       body['html'] = [self.request.get('message')]
     else:
-      body['text'] = self.request.get('message')
+      #body['text'] = self.request.get('message')
+      # If msg begins with '$', execute it.
+      msg = self.request.get('message')
+      if msg and msg[0] == '$':
+        msg = '{{ %s }}\n%s' % (msg, terp.Run(msg))
+      body['text'] = msg
 
     media_link = self.request.get('imageUrl')
     if media_link:

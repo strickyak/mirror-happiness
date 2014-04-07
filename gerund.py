@@ -35,8 +35,11 @@ ORDINALS = dict(
 )
 
 class Gerund(object):
-
-  def __init__(self):
+  def __init__(self, ticks=1000000, depth=100):
+    self.max_ticks = ticks  # Max steps
+    self.max_depth = depth  # Recusion
+    self.Reset()
+    self.depth = depth  # Recusion
     self.stack = []
     if db:
       words = db.Scan()
@@ -51,6 +54,10 @@ class Gerund(object):
             logging.error('%s' % traceback.format_exc(20))
           except:
             logging.error('CANNOT Compile: %s ; %s ;;; funny exception' % (w.name, w.code))
+
+  def Reset(self):
+    self.ticks = self.max_ticks  # Max steps
+    self.depth = self.max_depth  # Recusion
 
   def Run(self, s):
     s = NONALFA.sub(' ', s)
@@ -77,12 +84,14 @@ class Gerund(object):
         raise Exception('"must" Failed: want %s got %s' % (want, got))
       return None
     else:
+      self.Reset()
       self.stack = []
       comp = self.Compile(ww)
       logging.info('COMPILE = %s', comp)
       self.Eval(comp)
+      logging.info('CONTEXT = %s')
       logging.info('STACK = %s', self.stack)
-      return self.stack
+      return [self.stack, self.max_ticks - self.ticks]
 
   def Compile(self, ww):
     z = []
@@ -118,10 +127,10 @@ class Gerund(object):
           i+=1
           w += str(ORDINALS[ww[i]])
 
-	# This has become a problem on Wed Mar 26 2014
+        # This has become a problem on Wed Mar 26 2014
         if i+1 < len(ww) and ww[i+1] == "ing":
-	  i+=1
-	  w += "ing"
+          i+=1
+          w += "ing"
 
         # Four prepositions can make compound words.
         if i+2 < len(ww) and ww[i+1] in ['from', 'of', 'for', 'with']:
@@ -137,9 +146,23 @@ class Gerund(object):
       i+=1
     return z
 
+  def In(self):
+    self.depth -= 1
+    if self.depth < 1:
+      raise Exception("Too Deep")
+  def Out(self):
+    self.depth += 1
+  def Tick(self):
+    self.ticks -= 1
+    if self.ticks < 1:
+      raise Exception("Too many Ticks")
+
   def Eval(self, ww):
+    self.In()
+    self.Tick()
     i = 0
     while i < len(ww):
+      self.Tick()
       w = ww[i]
       if Debug: print '<<< <<< <<<' + repr(w)
       if callable(w):
@@ -150,6 +173,7 @@ class Gerund(object):
 
       if Debug: print '>>> >>> >>>' + repr(self.stack)
       i+=1
+    self.Out()
 
 
   def BinaryOp(self, op):
@@ -562,3 +586,6 @@ if __name__ == '__main__':
   for a in sys.argv[1:]:
     print '<<< ' + repr(a)
     print '>>> ' + repr(h.Run(a))
+
+# Singleton Interpereter.
+terp = Gerund()

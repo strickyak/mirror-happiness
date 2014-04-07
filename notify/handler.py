@@ -30,9 +30,8 @@ from oauth2client.appengine import StorageByKeyName
 from model import Credentials
 import util
 
-from gerund import Gerund
-
-terp = Gerund()
+import gerund
+terp = gerund.terp
 
 DOUBLE_BRACE = re.compile('{{').search
 
