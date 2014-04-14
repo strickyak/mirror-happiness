@@ -205,7 +205,12 @@ class MainHandler(webapp2.RequestHandler):
       # If msg begins with '$', execute it.
       msg = self.request.get('message')
       if msg and msg[0] == '$':
-        msg = '{{ %s }}\n%s' % (msg, terp.Run(msg))
+        answer = "?"
+        try:
+          answer = terp.Run(msg)
+        except Exception as ex:
+          answer = ex
+        msg = '{{ %s }}\n%s' % (msg, answer)
       body['text'] = msg
 
     media_link = self.request.get('imageUrl')

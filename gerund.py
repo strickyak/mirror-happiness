@@ -14,12 +14,14 @@ import re
 import logging
 import traceback
 
+print "trying db"
 try:
   import db
   if not db.OK:
     db = None
 except:
   db = None
+print "after db", db
 
 Debug = False
 
@@ -43,17 +45,15 @@ class Gerund(object):
     self.stack = []
     if db:
       words = db.Scan()
-      # TODO: this is n^2.  How to order them correctly?
-      for try_len_square_times in words:
-        for w in words:
+      for w in words:
           try:
             cc = self.Compile(eval(w.code))
             setattr(self, w.name, lambda: self.Eval(cc))
           except Exception as ex:
-            logging.error('CANNOT Compile: %s ; %s ;;; %s' % (w.name, w.code, ex))
-            logging.error('%s' % traceback.format_exc(20))
+            logging.error('CANNOT Compile: %s ; %s ;;; %s', w.name, w.code, ex)
+            logging.error('%s', traceback.format_exc(20))
           except:
-            logging.error('CANNOT Compile: %s ; %s ;;; funny exception' % (w.name, w.code))
+            logging.error('CANNOT Compile: %s ; %s ;;; funny exception', w.name, w.code)
 
   def Reset(self):
     self.ticks = self.max_ticks  # Max steps
@@ -89,8 +89,9 @@ class Gerund(object):
       comp = self.Compile(ww)
       logging.info('COMPILE = %s', comp)
       self.Eval(comp)
-      logging.info('CONTEXT = %s')
       logging.info('STACK = %s', self.stack)
+      return self.stack
+      # roll this back:
       return [self.stack, self.max_ticks - self.ticks]
 
   def Compile(self, ww):
@@ -137,12 +138,16 @@ class Gerund(object):
           i+=2
           w += '_' + ww[i]
 
+        ##X # The word should be a method of self.
+        ##X if Debug: print '=== word = ', w
+        ##X f = getattr(self, w, None)
+        ##X if not f:
+        ##X   raise Exception('Unknown word: %s' % w)
+        ##X z.append(f)
         # The word should be a method of self.
+
         if Debug: print '=== word = ', w
-        f = getattr(self, w, None)
-        if not f:
-          raise Exception('Unknown word: %s' % w)
-        z.append(f)
+        z.append(w)
       i+=1
     return z
 
@@ -167,6 +172,11 @@ class Gerund(object):
       if Debug: print '<<< <<< <<<' + repr(w)
       if callable(w):
         w()
+      if type(w) is str:
+        f = getattr(self, w, None)
+        if not f:
+          raise Exception('Unknown word: %s' % w)
+        f()
       else:
         # A literal.  Push it on the stack.
         self.stack.append(w)
@@ -247,6 +257,16 @@ class Gerund(object):
   def three(self): self.stack.append(3.0)
   def four(self): self.stack.append(4.0)
   def five(self): self.stack.append(5.0)
+  def six(self): self.stack.append(6.0)
+  def sex(self): self.stack.append(6.0)
+  def seven(self): self.stack.append(7.0)
+  def aight(self): self.stack.append(8.0)
+  def ate(self): self.stack.append(8.0)
+  def eight(self): self.stack.append(8.0)
+  def nine(self): self.stack.append(9.0)
+  def ten(self): self.stack.append(10.0)
+  def eleven(self): self.stack.append(11.0)
+  def twelve(self): self.stack.append(12.0)
 
   def duplicating(self):
     self.stack.append(self.stack[-1])
@@ -580,6 +600,7 @@ if __name__ == '__main__':
   t.Run('must 0: 6 prime')
   t.Run('must 1: 7 prime')
   t.Run('must 0: 8 prime')
+  print '=== Tested OKAY'
 
   # Run command line args.
   h = Gerund()

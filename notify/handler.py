@@ -26,6 +26,7 @@ import webapp2
 from random import choice
 from apiclient.http import MediaIoBaseUpload
 from oauth2client.appengine import StorageByKeyName
+from google.appengine.api import urlfetch
 
 from model import Credentials
 import util
@@ -95,52 +96,58 @@ class NotifyHandler(webapp2.RequestHandler):
         break
       elif user_action.get('type') in ['LAUNCH', 'REPLY']:
         note_text = item.get('text', '*NONE*')
-	if DOUBLE_BRACE(note_text):
+
+        if DOUBLE_BRACE(note_text):
           logging.info("Ignoring Double Bracy Action :::: %s :::: %s" % (note_text, user_action))
-	  return
+          return
+
         try:
           z = terp.Run(note_text)
         except Exception as ex:
           z = "ERROR: %s" % ex
+
         item['text'] = "{{ %s }}\n%s" % (note_text, z)
+        logging.info("notify/user_action/text = %s", item['text'])
         item['html'] = None
         item['menuItems'] = [{ 'action': 'REPLY' }, { 'action': 'DELETE' }];
 
         self.mirror_service.timeline().update(
             id=item['id'], body=item).execute()
 
+        media = None
         if type(z) is list and len(z) > 0:
+          for zi in z:
+            logging.info("z[i] = %s", zi)
+
           yy = ''
-          for y in z[1]:
-            if type(y) is list and len(y) == 9:
-              yy += ','.join(y) + ',,'
+          # Should be a list, with last element (top of stack) a list.
+          tos = z[-1]
+          if type(tos) is list and len(tos) > 0:
+            for y in tos:
+              logging.info("y = %s", y)
+              # If items in that TOS are lists of 9, append to yy.
+              if type(y) is list and len(y) == 9:
+                yy += ','.join([str(int(yi)) for yi in y]) + ',,,'
+                logging.info("yy = %s", yy)
         
-          if len(yy):
-            body = {
-              'notification': {'level': 'DEFAULT'},
-              'text': '',
-            }
-            resp = urlfetch.fetch(media_link, deadline=10)
-            media = MediaIoBaseUpload(
-              io.BytesIO(resp.content), mimetype='image/jpeg', resumable=True)
-            self.mirror_service.timeline().insert(body=body, media_body=media).execute()
+            if len(yy):
+              body = {
+                'notification': {'level': 'DEFAULT'},
+                'text': '',
+              }
+              media_link = 'http://node1.yak.net:2018/%s' % yy
+              logging.info("fetching = %s", media_link)
+              resp = urlfetch.fetch(media_link, deadline=10)
+              logging.info("resp.content = %s", (resp.content))
+              media = MediaIoBaseUpload(
+                  io.BytesIO(resp.content), mimetype='image/png', resumable=True)
 
+              logging.info("pushing image to timeline")
+              self.mirror_service.timeline().insert(body=body, media_body=media).execute()
+              logging.info("pushed image to timeline")
 
-        if False:
-                # Grab the spoken text from the timeline card and update the card with
-                # an HTML response (deleting the text as well).
-                note_text = item.get('text', '');
-                utterance = choice(CAT_UTTERANCES)
+        logging.info("END NOTIFY")
 
-                item['text'] = None
-                item['html'] = ("<article class='auto-paginate'>" +
-                    "<p class='text-auto-size'>" +
-                    "Oh, did you say " + note_text + "? " + utterance + "</p>" +
-                    "<footer><p>Python Quick Start</p></footer></article>")
-                item['menuItems'] = [{ 'action': 'DELETE' }];
-
-                self.mirror_service.timeline().update(
-                    id=item['id'], body=item).execute()
       else:
         logging.info(
             "I don't know what to do with this notification: %s", user_action)
