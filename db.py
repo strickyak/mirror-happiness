@@ -18,7 +18,7 @@ try:
 
 	def Store(name, code):
 		w = Fetch(name)
-		if not ww:
+		if not w:
 			w = Word(parent=Parent)
 		w.name = name
 		w.code = code

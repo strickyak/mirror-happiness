@@ -17,7 +17,7 @@ import traceback
 print "trying db"
 try:
   import db
-  if not db.OK:
+  if not db.OKAY:
     db = None
 except:
   db = None
@@ -36,6 +36,7 @@ ORDINALS = dict(
   eleventh=11, twelvth=12,
 )
 
+
 class Gerund(object):
   def __init__(self, ticks=1000000, depth=100):
     self.max_ticks = ticks  # Max steps
@@ -47,13 +48,20 @@ class Gerund(object):
       words = db.Scan()
       for w in words:
           try:
+            logging.info('Compiling %s = %s', w.name, w.code)
             cc = self.Compile(eval(w.code))
-            setattr(self, w.name, lambda: self.Eval(cc))
+            logging.info('Compiled %s = %s', w.name, cc)
+            f = self.LambdaToEvalCompiledWords(cc)
+            setattr(self, w.name, f)
+            #setattr(self, w.name, lambda: self.Eval(cc))
           except Exception as ex:
             logging.error('CANNOT Compile: %s ; %s ;;; %s', w.name, w.code, ex)
             logging.error('%s', traceback.format_exc(20))
           except:
             logging.error('CANNOT Compile: %s ; %s ;;; funny exception', w.name, w.code)
+
+  def LambdaToEvalCompiledWords(self, cc):
+    return lambda: self.Eval(cc)
 
   def Reset(self):
     self.ticks = self.max_ticks  # Max steps
@@ -169,6 +177,7 @@ class Gerund(object):
     while i < len(ww):
       self.Tick()
       w = ww[i]
+      logging.info('Step %s', repr(w))  # zzzzzzzzzzzz
       if Debug: print '<<< <<< <<<' + repr(w)
       if callable(w):
         w()

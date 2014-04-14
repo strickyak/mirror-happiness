@@ -90,9 +90,6 @@ class MainHandler(webapp2.RequestHandler):
   """Request Handler for the main endpoint."""
 
   def _render_template(self, message=None):
-    # dt = str(datetime.datetime.utcnow())
-    # db.Store(dt, dt.upper())
-
     """Render the main page template."""
     template_values = {'userId': self.userid}
     if message:
@@ -117,25 +114,12 @@ class MainHandler(webapp2.RequestHandler):
 
     template = jinja_environment.get_template('templates/index.html')
     self.response.out.write(template.render(template_values)) 
-    # + "<p>(nando)<p>" + hexy(db.Scan()) + repr(db.Scan()) )
 
     recs = db.Scan()
     self.response.out.write('<ul>')
     d = dict()
     for r in sorted(recs):
       self.response.out.write('<li>' + cgi.escape(repr(r)))
-      self.response.out.write('<br>' + 'Key: ' + cgi.escape(repr(r.key)))
-      #if r.name[:4] == '2014':
-      #  self.response.out.write('<br>' + 'Delete That: ' + cgi.escape(repr(r.name)))
-      # db.Delete(r.name)
-      # self.response.out.write('<br>' + '***DELETED***')
-      ## self.response.out.write('<br>' + 'Dir: ' + cgi.escape(repr(dir(r))))
-      self.response.out.write('<br>' + 'Vars: ' + cgi.escape(repr(vars(r))))
-      #if d.get(r.name):
-      #  r.key.delete()
-      #  self.response.out.write('<br>' + '***DELETED***')
-      #else:
-      #  d[r.name] = r
       self.response.out.write('<br>')
 
     self.response.out.write('</ul>')
