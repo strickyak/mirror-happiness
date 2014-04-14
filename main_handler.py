@@ -99,7 +99,7 @@ class MainHandler(webapp2.RequestHandler):
       template_values['contact'] = self.mirror_service.contacts().get(
         id='yak-zero-id').execute()
     except errors.HttpError:
-      logging.info('Unable to find Python Quick Start contact.')
+      logging.info('Unable to find Happiness contact.')
 
     timeline_items = self.mirror_service.timeline().list(maxResults=3).execute()
     template_values['timelineItems'] = timeline_items.get('items', [])
@@ -180,7 +180,8 @@ class MainHandler(webapp2.RequestHandler):
     logging.info('Inserting timeline item')
 
     body = {
-        'notification': {'level': 'DEFAULT'}
+        'notification': {'level': 'DEFAULT'},
+	'menuItems': [{ 'action': 'REPLY' }, { 'action': 'DELETE' }],
     }
     if self.request.get('html') == 'on':
       body['html'] = [self.request.get('message')]

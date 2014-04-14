@@ -63,7 +63,7 @@ class NotifyHandler(webapp2.RequestHandler):
   def _handle_locations_notification(self, data):
     """Handle locations notification."""
     location = self.mirror_service.locations().get(id=data['itemId']).execute()
-    text = 'Python Quick Start says you are at %s by %s.' % \
+    text = 'Happiness says you are at %s by %s.' % \
         (location.get('latitude'), location.get('longitude'))
     body = {
         'text': text,
@@ -82,7 +82,7 @@ class NotifyHandler(webapp2.RequestHandler):
       if user_action.get('type') == 'SHARE':
         # Create a dictionary with just the attributes that we want to patch.
         body = {
-            'text': 'Python Quick Start got your photo! %s' % item.get('text', '')
+            'text': 'Happiness got your photo! %s' % item.get('text', '')
         }
 
         # Patch the item. Notice that since we retrieved the entire item above
@@ -115,7 +115,7 @@ class NotifyHandler(webapp2.RequestHandler):
             id=item['id'], body=item).execute()
 
         media = None
-        if type(z) is list and len(z) > 0:
+        if type(z) is tuple and len(z) > 0:
           for zi in z:
             logging.info("z[i] = %s", zi)
 
@@ -134,11 +134,12 @@ class NotifyHandler(webapp2.RequestHandler):
               body = {
                 'notification': {'level': 'DEFAULT'},
                 'text': '',
+                'menuItems': [{ 'action': 'REPLY' }, { 'action': 'DELETE' }]
               }
               media_link = 'http://node1.yak.net:2018/%s' % yy
               logging.info("fetching = %s", media_link)
               resp = urlfetch.fetch(media_link, deadline=10)
-              logging.info("resp.content = %s", (resp.content))
+              logging.info("len resp.content = %s", len(resp.content))
               media = MediaIoBaseUpload(
                   io.BytesIO(resp.content), mimetype='image/png', resumable=True)
 

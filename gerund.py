@@ -73,14 +73,20 @@ class Gerund(object):
     ww = [str(x) for x in s.split(' ') if x not in STOPS]
     logging.info('WORDS = %s', ww)
     if len(ww) > 1 and ww[0]=='define':
-      what = ww[1]
-      cc = self.Compile(ww[2:])
+      rest = ww[1:]
+      what, numWhatSlots = self.Compile(rest, just_one_word=True)
+
+      if type(what) is not str:
+        raise Exception('Not defining a word: %s' % repr(what))
+
+      rest = rest[numWhatSlots:]
+      cc = self.Compile(rest)
       setattr(self, what, lambda: self.Eval(cc))
 
-      # Save in db.
-      if db: db.Store(what, repr(ww[2:]))
+      if db: db.Store(what, repr(rest))
 
-      return None
+      return ( what, cc )
+
     elif len(ww) > 1 and ww[0]=='must':
       want = float(ww[1])
       self.stack = []
@@ -98,11 +104,9 @@ class Gerund(object):
       logging.info('COMPILE = %s', comp)
       self.Eval(comp)
       logging.info('STACK = %s', self.stack)
-      return self.stack
-      # roll this back:
-      return [self.stack, self.max_ticks - self.ticks]
+      return tuple(self.stack)
 
-  def Compile(self, ww):
+  def Compile(self, ww, just_one_word=False):
     z = []
     i = 0
     while i < len(ww):
@@ -157,6 +161,8 @@ class Gerund(object):
         if Debug: print '=== word = ', w
         z.append(w)
       i+=1
+      if just_one_word:
+        return z[0], i
     return z
 
   def In(self):
