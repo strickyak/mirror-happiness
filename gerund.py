@@ -518,6 +518,94 @@ class Gerund(object):
     self.Eval(t1)
     self.stack.append(t2)
 
+  def repeating(self): # scalar|vec n repeating -> vec
+    n = int(self.stack.pop())
+    x = self.stack.pop()
+    if type(x) is list:
+      self.stack.append(n * x)
+    else:
+      self.stack.append(n * [x])
+
+  def shifting(self): # vec i shifting -> vec # shift 0's in, slde everything right (positive i) or left (negative i) i places.
+    i = int(self.stack.pop())
+    vec = self.stack.pop()
+    if type(vec) is not list:
+      raise Exception('Not a list: %s' % vec)
+    n = len(vec)
+    if i > 0:
+      i = min(i, n)
+      j = n - i
+      self.stack.append((i * [0]) + vec[:j])
+    elif i < 0:
+      i = min(-i, n)
+      j = n - i
+      self.stack.append(vec[-j:] + (i * [0]))
+    else:
+      self.stack.append(vec)
+    
+  def basis(self): # n basis -> vec # 1 in first positin, rest are zeroes.
+    n = int(self.stack.pop())
+    self.stack.append([1] + (n-1) * [0])
+   
+  def RememberingN(self, n):
+    m = Marker(n)
+    self.stack.append(m)
+
+  def remembering(self): self.RememberingN(0)
+  def remembering1(self): self.RememberingN(1)
+  def remembering2(self): self.RememberingN(2)
+  def remembering3(self): self.RememberingN(3)
+  def remembering4(self): self.RememberingN(4)
+  def remembering5(self): self.RememberingN(5)
+
+  def FindMark(self):
+    n = len(self.stack)
+    for i in range(n):
+      j = n - i - 1
+      if type(self.stack[j]) is Marker:
+        return j
+    raise Exception("Mark not found: %s" % self.stack)
+      
+  def ForgettingN(self, k):
+    p = self.FindMark()
+    n = self.stack[p].n
+    j = p - n
+    t = len(self.stack)
+    for i in range(k):
+      self.stack[j + i] = self.stack[t - k + i]
+    self.stack = self.stack[:j+k]
+
+  def forgetting(self): self.ForgettingN(0)
+  def forgetting1(self): self.ForgettingN(1)
+  def forgetting2(self): self.ForgettingN(2)
+  def forgetting3(self): self.ForgettingN(3)
+  def forgetting4(self): self.ForgettingN(4)
+  def forgetting5(self): self.ForgettingN(5)
+
+  def FetchingN(self, i):
+    p = self.FindMark()
+    x = self.stack[p-i]
+    self.stack.append(x)
+  def fetching1(self): self.FetchingN(1)
+  def fetching2(self): self.FetchingN(2)
+  def fetching3(self): self.FetchingN(3)
+  def fetching4(self): self.FetchingN(4)
+  def fetching5(self): self.FetchingN(5)
+
+  def StoringN(self, i):
+    x = self.stack.pop()
+    p = self.FindMark()
+    self.stack[p-i] = x
+  def storing1(self): self.StoringN(1)
+  def storing2(self): self.StoringN(2)
+  def storing3(self): self.StoringN(3)
+  def storing4(self): self.StoringN(4)
+  def storing5(self): self.StoringN(5)
+
+class Marker(object):
+  def __init__(self, n):
+    self.n = n
+
 # MAIN
 if __name__ == '__main__':
   import os
@@ -615,6 +703,19 @@ if __name__ == '__main__':
   t.Run('must 0: 6 prime')
   t.Run('must 1: 7 prime')
   t.Run('must 0: 8 prime')
+
+  t.Run('Define squaring: duplicating multiplying')
+  t.Run('Define distance2: remembering the second: '
+        '  fetching2 squaring , fetching1 squaring, adding;'
+	'  forgetting1 ')
+  t.Run('must 25: 3 4 distance2 ')
+  t.Run('must 121: 100 remembering1; 6 counting '
+        '  opening fetching1 adding storing1 0 closing, mapping;'
+	'     fetching1 forgetting1')
+
+  #t.Run('Define fib9: remembering the second: get2 1 shifting, get2 2 shifting, adding;'.....)
+
+
   print '=== Tested OKAY'
 
   # Run command line args.

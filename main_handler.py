@@ -118,9 +118,8 @@ class MainHandler(webapp2.RequestHandler):
     recs = db.Scan()
     self.response.out.write('<ul>')
     d = dict()
-    for r in sorted(recs):
-      self.response.out.write('<li>' + cgi.escape(repr(r)))
-      self.response.out.write('<br>')
+    for r in sorted(recs, key=lambda e: e.name):
+      self.response.out.write('<li><b>%s : </b> %s' % (cgi.escape(r.name), cgi.escape(r.code)) )
 
     self.response.out.write('</ul>')
       
