@@ -35,6 +35,11 @@ ORDINALS = dict(
   sixth=6, seventh=7, eighth=8, nineth=9, tenth=10,
   eleventh=11, twelvth=12,
 )
+ORDINALS['5th'] = 5
+ORDINALS['6th'] = 6
+ORDINALS['7th'] = 7
+ORDINALS['8th'] = 8
+ORDINALS['9th'] = 9
 
 
 class Gerund(object):
@@ -118,7 +123,7 @@ class Gerund(object):
       logging.info('COMPILE = %s', comp)
       self.Eval(comp)
       logging.info('STACK = %s', self.stack)
-      return tuple(self.stack)
+      return tuple(self.stack + ['ticks=%d' % (self.max_ticks - self.ticks)] )
 
   def Compile(self, ww, just_one_word=False):
     z = []
@@ -155,22 +160,14 @@ class Gerund(object):
           w += str(ORDINALS[ww[i]])
 
         # This has become a problem on Wed Mar 26 2014
-        if i+1 < len(ww) and ww[i+1] == "ing":
+        if i+1 < len(ww) and ww[i+1] in ["ng", "ing"]:
           i+=1
           w += "ing"
 
-        # Four prepositions can make compound words.
-        if i+2 < len(ww) and ww[i+1] in ['from', 'of', 'for', 'with']:
+        # make compound words with 'with'.
+        if i+2 < len(ww) and ww[i+1] == 'with':
           i+=2
-          w += '_' + ww[i]
-
-        ##X # The word should be a method of self.
-        ##X if Debug: print '=== word = ', w
-        ##X f = getattr(self, w, None)
-        ##X if not f:
-        ##X   raise Exception('Unknown word: %s' % w)
-        ##X z.append(f)
-        # The word should be a method of self.
+          w += '_with_' + ww[i]
 
         if Debug: print '=== word = ', w
         z.append(w)
@@ -197,7 +194,7 @@ class Gerund(object):
     while i < len(ww):
       self.Tick()
       w = ww[i]
-      logging.info('Step %s', repr(w))  # zzzzzzzzzzzz
+      # logging.info('Step %s', repr(w))  # zzzzzzzzzzzz
       if Debug: print '<<< <<< <<<' + repr(w)
       if callable(w):
         w()
@@ -278,6 +275,7 @@ class Gerund(object):
   def exceeding(self):
     self.BinaryOp(lambda y, x: y > x)
 
+  def zero(self): self.stack.append(0.0)
   def won(self): self.stack.append(1.0)
   def one(self): self.stack.append(1.0)
   def two(self): self.stack.append(2.0)
@@ -299,6 +297,26 @@ class Gerund(object):
 
   def duplicating(self):
     self.stack.append(self.stack[-1])
+  def duplicating1(self):
+    self.stack.append(self.stack[-1])
+  def duplicating2(self):
+    self.stack.append(self.stack[-2])
+    self.stack.append(self.stack[-2])
+  def duplicating3(self):
+    self.stack.append(self.stack[-3])
+    self.stack.append(self.stack[-3])
+    self.stack.append(self.stack[-3])
+  def duplicating4(self):
+    self.stack.append(self.stack[-4])
+    self.stack.append(self.stack[-4])
+    self.stack.append(self.stack[-4])
+    self.stack.append(self.stack[-4])
+  def duplicating5(self):
+    self.stack.append(self.stack[-5])
+    self.stack.append(self.stack[-5])
+    self.stack.append(self.stack[-5])
+    self.stack.append(self.stack[-5])
+    self.stack.append(self.stack[-5])
 
   def sizing(self):
     tmp = self.stack.pop()
@@ -341,6 +359,12 @@ class Gerund(object):
       current = self.stack.pop()
     self.stack.append(current)
 
+  def dropping(self):
+    bools = self.stack.pop()
+    items = self.stack.pop()
+    z = [x for x, y in zip(items, bools) if y]
+    self.stack.append(z)
+
   def choosing(self):
     t1 = self.stack.pop()
     t2 = self.stack.pop()
@@ -361,6 +385,18 @@ class Gerund(object):
   def choosing5(self):
     t = self.stack.pop()
     self.stack.append(t[4])
+  def choosing6(self):
+    t = self.stack.pop()
+    self.stack.append(t[5])
+  def choosing7(self):
+    t = self.stack.pop()
+    self.stack.append(t[6])
+  def choosing8(self):
+    t = self.stack.pop()
+    self.stack.append(t[7])
+  def choosing9(self):
+    t = self.stack.pop()
+    self.stack.append(t[8])
 
   def changing(self):
     t1 = self.stack.pop()
@@ -388,6 +424,22 @@ class Gerund(object):
     t1 = self.stack.pop()
     t3 = self.stack.pop()
     t3[4] = t1
+  def changing6(self):
+    t1 = self.stack.pop()
+    t3 = self.stack.pop()
+    t3[5] = t1
+  def changing7(self):
+    t1 = self.stack.pop()
+    t3 = self.stack.pop()
+    t3[6] = t1
+  def changing8(self):
+    t1 = self.stack.pop()
+    t3 = self.stack.pop()
+    t3[7] = t1
+  def changing9(self):
+    t1 = self.stack.pop()
+    t3 = self.stack.pop()
+    t3[8] = t1
 
   def getting1(self):
     self.stack.append(self.stack[-1])
@@ -472,7 +524,16 @@ class Gerund(object):
     t = t2 + t1
     self.stack.append(t)
 
-  def reducing_adding(self): self.summing()
+  def reducing_with_concatenating(self):
+    t = self.stack.pop()
+    if type(t) is not list:
+      raise Exception('"reducing_with_concatenating" expected a list on top of stack, got %s' % t)
+    z = []
+    for e in t:
+      z = z + e
+    self.stack.append(z)
+
+  def reducing_with_adding(self): self.summing()
   def something(self): self.summing()
   def summation(self): self.summing()
   def summarizing(self): self.summing()
@@ -482,7 +543,7 @@ class Gerund(object):
       raise Exception('"summing" expected a list on top of stack, got %s' % t)
     self.stack.append(sum(t))
 
-  def reducing_multiplying(self): self.productizing()
+  def reducing_with_multiplying(self): self.productizing()
   def productionizing(self): self.productizing()
   def productizing(self):
     t = self.stack.pop()
@@ -494,10 +555,23 @@ class Gerund(object):
     t = self.stack.pop()
     self.Eval(t)
 
+  def listing(self): # i
+    t = self.stack.pop()
+    p1 = len(self.stack)
+    self.Eval(t)
+    p2 = len(self.stack)
+    z = []
+    p = p1
+    while p < p2:
+      z.append(self.stack[p])
+      p += 1
+    self.stack = self.stack[:p1]
+    self.stack.append(z)
+
   def iterating(self): # i
     t = self.stack.pop()
     n = self.stack.pop()
-    for _ in range(n):
+    for _ in range(int(n)):
       self.Eval(t)
 
   def depending(self): # ifte
@@ -621,6 +695,9 @@ class Gerund(object):
   def storing3(self): self.StoringN(3)
   def storing4(self): self.StoringN(4)
   def storing5(self): self.StoringN(5)
+
+    
+
 
 class Marker(object):
   def __init__(self, n):

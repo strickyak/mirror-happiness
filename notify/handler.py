@@ -115,13 +115,14 @@ class NotifyHandler(webapp2.RequestHandler):
             id=item['id'], body=item).execute()
 
         media = None
-        if type(z) is tuple and len(z) > 0:
+        if type(z) is tuple and len(z) > 1: # ticks= is last.
           for zi in z:
             logging.info("z[i] = %s", zi)
 
           yy = ''
           # Should be a list, with last element (top of stack) a list.
-          tos = z[-1]
+          # Actually, last is 'ticks=...', so next-to-last:
+          tos = z[-2]
           if type(tos) is list and len(tos) > 0:
             for y in tos:
               logging.info("y = %s", y)

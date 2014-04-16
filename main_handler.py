@@ -180,15 +180,14 @@ class MainHandler(webapp2.RequestHandler):
 
     body = {
         'notification': {'level': 'DEFAULT'},
-	'menuItems': [{ 'action': 'REPLY' }, { 'action': 'DELETE' }],
+        'menuItems': [{ 'action': 'REPLY' }, { 'action': 'DELETE' }],
     }
     if self.request.get('html') == 'on':
       body['html'] = [self.request.get('message')]
     else:
-      #body['text'] = self.request.get('message')
-      # If msg begins with '$', execute it.
+      # Execute the message.
       msg = self.request.get('message')
-      if msg and msg[0] == '$':
+      if msg:
         answer = "?"
         try:
           answer = terp.Run(msg)
