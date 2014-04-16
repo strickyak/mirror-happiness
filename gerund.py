@@ -44,6 +44,7 @@ class Gerund(object):
     self.Reset()
     self.depth = depth  # Recusion
     self.stack = []
+    self.words = {}
     if db:
       words = db.Scan()
       for w in words:
@@ -53,7 +54,7 @@ class Gerund(object):
             logging.info('Compiled %s = %s', w.name, cc)
             f = self.LambdaToEvalCompiledWords(cc)
             setattr(self, w.name, f)
-            #setattr(self, w.name, lambda: self.Eval(cc))
+            self.words[w.name] = w.code
           except Exception as ex:
             logging.error('CANNOT Compile: %s ; %s ;;; %s', w.name, w.code, ex)
             logging.error('%s', traceback.format_exc(20))
@@ -72,6 +73,7 @@ class Gerund(object):
     s = s.lower()
     ww = [str(x) for x in s.split(' ') if x not in STOPS]
     logging.info('WORDS = %s', ww)
+
     if len(ww) > 1 and ww[0]=='define':
       rest = ww[1:]
       what, numWhatSlots = self.Compile(rest, just_one_word=True)
@@ -84,8 +86,19 @@ class Gerund(object):
       setattr(self, what, lambda: self.Eval(cc))
 
       if db: db.Store(what, repr(rest))
+      self.words[what] = repr(rest)
 
       return ( what, cc )
+
+    elif len(ww) == 1 and ww[0]=='list':
+      return ' '.join([k for k in sorted(self.words)])
+
+    elif len(ww) > 1 and ww[0]=='list':
+      what, numWhatSlots = self.Compile(ww[1:], just_one_word=True)
+      return ( what, self.words.get(what) )
+
+    elif len(ww) == 1 and ww[0]=='definitions':
+      return [pair for pair in sorted(self.words.items())]
 
     elif len(ww) > 1 and ww[0]=='must':
       want = float(ww[1])
@@ -97,6 +110,7 @@ class Gerund(object):
       if want != got:
         raise Exception('"must" Failed: want %s got %s' % (want, got))
       return None
+
     else:
       self.Reset()
       self.stack = []
@@ -480,6 +494,12 @@ class Gerund(object):
     t = self.stack.pop()
     self.Eval(t)
 
+  def iterating(self): # i
+    t = self.stack.pop()
+    n = self.stack.pop()
+    for _ in range(n):
+      self.Eval(t)
+
   def depending(self): # ifte
     f = self.stack.pop()
     t = self.stack.pop()
@@ -547,16 +567,16 @@ class Gerund(object):
     n = int(self.stack.pop())
     self.stack.append([1] + (n-1) * [0])
    
-  def RememberingN(self, n):
+  def MarkingN(self, n):
     m = Marker(n)
     self.stack.append(m)
 
-  def remembering(self): self.RememberingN(0)
-  def remembering1(self): self.RememberingN(1)
-  def remembering2(self): self.RememberingN(2)
-  def remembering3(self): self.RememberingN(3)
-  def remembering4(self): self.RememberingN(4)
-  def remembering5(self): self.RememberingN(5)
+  def marking(self): self.MarkingN(0)
+  def marking1(self): self.MarkingN(1)
+  def marking2(self): self.MarkingN(2)
+  def marking3(self): self.MarkingN(3)
+  def marking4(self): self.MarkingN(4)
+  def marking5(self): self.MarkingN(5)
 
   def FindMark(self):
     n = len(self.stack)
@@ -566,7 +586,7 @@ class Gerund(object):
         return j
     raise Exception("Mark not found: %s" % self.stack)
       
-  def ForgettingN(self, k):
+  def RetainingN(self, k):
     p = self.FindMark()
     n = self.stack[p].n
     j = p - n
@@ -575,12 +595,12 @@ class Gerund(object):
       self.stack[j + i] = self.stack[t - k + i]
     self.stack = self.stack[:j+k]
 
-  def forgetting(self): self.ForgettingN(0)
-  def forgetting1(self): self.ForgettingN(1)
-  def forgetting2(self): self.ForgettingN(2)
-  def forgetting3(self): self.ForgettingN(3)
-  def forgetting4(self): self.ForgettingN(4)
-  def forgetting5(self): self.ForgettingN(5)
+  def retaining(self): self.RetainingN(0)
+  def retaining1(self): self.RetainingN(1)
+  def retaining2(self): self.RetainingN(2)
+  def retaining3(self): self.RetainingN(3)
+  def retaining4(self): self.RetainingN(4)
+  def retaining5(self): self.RetainingN(5)
 
   def FetchingN(self, i):
     p = self.FindMark()
@@ -605,6 +625,10 @@ class Gerund(object):
 class Marker(object):
   def __init__(self, n):
     self.n = n
+  def __repr__(self):
+    return 'Marker(%d)' % self.n
+  def __str__(self):
+    return 'Marker(%d)' % self.n
 
 # MAIN
 if __name__ == '__main__':
@@ -705,16 +729,13 @@ if __name__ == '__main__':
   t.Run('must 0: 8 prime')
 
   t.Run('Define squaring: duplicating multiplying')
-  t.Run('Define distance2: remembering the second: '
+  t.Run('Define distance2: marking the second: '
         '  fetching2 squaring , fetching1 squaring, adding;'
-	'  forgetting1 ')
+        '  retaining1 ')
   t.Run('must 25: 3 4 distance2 ')
-  t.Run('must 121: 100 remembering1; 6 counting '
+  t.Run('must 121: 100 marking1; 6 counting '
         '  opening fetching1 adding storing1 0 closing, mapping;'
-	'     fetching1 forgetting1')
-
-  #t.Run('Define fib9: remembering the second: get2 1 shifting, get2 2 shifting, adding;'.....)
-
+        '     fetching1 retaining1')
 
   print '=== Tested OKAY'
 
