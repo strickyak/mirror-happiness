@@ -35,6 +35,10 @@ ORDINALS = dict(
   sixth=6, seventh=7, eighth=8, nineth=9, tenth=10,
   eleventh=11, twelvth=12,
 )
+ORDINALS['1st'] = 1
+ORDINALS['2nd'] = 2
+ORDINALS['3rd'] = 3
+ORDINALS['4th'] = 4
 ORDINALS['5th'] = 5
 ORDINALS['6th'] = 6
 ORDINALS['7th'] = 7
@@ -74,56 +78,60 @@ class Gerund(object):
     self.depth = self.max_depth  # Recusion
 
   def Run(self, s):
-    s = NONALFA.sub(' ', s)
-    s = s.lower()
-    ww = [str(x) for x in s.split(' ') if x not in STOPS]
-    logging.info('WORDS = %s', ww)
-
-    if len(ww) > 1 and ww[0]=='define':
-      rest = ww[1:]
-      what, numWhatSlots = self.Compile(rest, just_one_word=True)
-
-      if type(what) is not str:
-        raise Exception('Not defining a word: %s' % repr(what))
-
-      rest = rest[numWhatSlots:]
-      cc = self.Compile(rest)
-      setattr(self, what, lambda: self.Eval(cc))
-
-      if db: db.Store(what, repr(rest))
-      self.words[what] = repr(rest)
-
-      return ( what, cc )
-
-    elif len(ww) == 1 and ww[0]=='list':
-      return ' '.join([k for k in sorted(self.words)])
-
-    elif len(ww) > 1 and ww[0]=='list':
-      what, numWhatSlots = self.Compile(ww[1:], just_one_word=True)
-      return ( what, self.words.get(what) )
-
-    elif len(ww) == 1 and ww[0]=='definitions':
-      return [pair for pair in sorted(self.words.items())]
-
-    elif len(ww) > 1 and ww[0]=='must':
-      want = float(ww[1])
-      self.stack = []
-      self.Eval(self.Compile(ww[2:]))
-      if len(self.stack) != 1:
-        raise Exception('Stack length: want 1 got %d ---- %s' % (len(self.stack), self.stack))
-      got = float(self.stack[-1])
-      if want != got:
-        raise Exception('"must" Failed: want %s got %s' % (want, got))
-      return None
-
-    else:
-      self.Reset()
-      self.stack = []
-      comp = self.Compile(ww)
-      logging.info('COMPILE = %s', comp)
-      self.Eval(comp)
-      logging.info('STACK = %s', self.stack)
-      return tuple(self.stack + ['ticks=%d' % (self.max_ticks - self.ticks)] )
+    try:
+      s = NONALFA.sub(' ', s)
+      s = s.lower()
+      ww = [str(x) for x in s.split(' ') if x not in STOPS]
+      logging.info('WORDS = %s', ww)
+  
+      if len(ww) > 1 and ww[0]=='define':
+        rest = ww[1:]
+        what, numWhatSlots = self.Compile(rest, just_one_word=True)
+  
+        if type(what) is not str:
+          raise Exception('Not defining a word: %s' % repr(what))
+  
+        rest = rest[numWhatSlots:]
+        cc = self.Compile(rest)
+        setattr(self, what, lambda: self.Eval(cc))
+  
+        if db: db.Store(what, repr(rest))
+        self.words[what] = repr(rest)
+  
+        return ( what, cc )
+  
+      elif len(ww) == 1 and ww[0]=='list':
+        return ' '.join([k for k in sorted(self.words)])
+  
+      elif len(ww) > 1 and ww[0]=='list':
+        what, numWhatSlots = self.Compile(ww[1:], just_one_word=True)
+        return ( what, self.words.get(what) )
+  
+      elif len(ww) == 1 and ww[0]=='definitions':
+        return [pair for pair in sorted(self.words.items())]
+  
+      elif len(ww) > 1 and ww[0]=='must':
+        want = float(ww[1])
+        self.stack = []
+        self.Eval(self.Compile(ww[2:]))
+        if len(self.stack) != 1:
+          raise Exception('Stack length: want 1 got %d ---- %s' % (len(self.stack), self.stack))
+        got = float(self.stack[-1])
+        if want != got:
+          raise Exception('"must" Failed: want %s got %s' % (want, got))
+        return None
+  
+      else:
+        self.Reset()
+        self.stack = []
+        comp = self.Compile(ww)
+        logging.info('COMPILE = %s', comp)
+        self.Eval(comp)
+        logging.info('STACK = %s', self.stack)
+        return tuple(self.stack + ['ticks=%d' % (self.max_ticks - self.ticks)] )
+    except Exception as ex:
+      traceback.print_exc()
+      raise ex
 
   def Compile(self, ww, just_one_word=False):
     z = []
@@ -153,19 +161,20 @@ class Gerund(object):
           i+=1
         z.append(self.Compile(vecs[0]))
       else:
-        # Ordinals are special; they append to previous word.
-        # i.e. "foo second" becomes "foo2".
-        if i+1 < len(ww) and ww[i+1] in ORDINALS:
-          i+=1
-          w += str(ORDINALS[ww[i]])
+        if i+1 < len(ww) and type(ww[i+1]) is str:
+          # Ordinals are special; they append to previous word.
+          # i.e. "foo second" becomes "foo2".
+          if ww[i+1] in ORDINALS:
+            i+=1
+            w += str(ORDINALS[ww[i]])
 
-        # This has become a problem on Wed Mar 26 2014
-        if i+1 < len(ww) and ww[i+1] in ["ng", "ing"]:
-          i+=1
-          w += "ing"
+          # This has become a problem on Wed Mar 26 2014
+          elif ww[i+1] in ["ng", "ing"]:
+            i+=1
+            w += "ing"
 
         # make compound words with 'with'.
-        if i+2 < len(ww) and ww[i+1] == 'with':
+        if i+2 < len(ww) and ww[i+1] == 'with' and type(ww[i+2]) is str:
           i+=2
           w += '_with_' + ww[i]
 
@@ -194,11 +203,10 @@ class Gerund(object):
     while i < len(ww):
       self.Tick()
       w = ww[i]
-      # logging.info('Step %s', repr(w))  # zzzzzzzzzzzz
       if Debug: print '<<< <<< <<<' + repr(w)
-      if callable(w):
+      if callable(w):  # obsolete?
         w()
-      if type(w) is str:
+      elif type(w) is str:
         f = getattr(self, w, None)
         if not f:
           raise Exception('Unknown word: %s' % w)
