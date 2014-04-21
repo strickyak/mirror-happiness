@@ -38,8 +38,8 @@ from model import Credentials
 import util
 import db
 
-import gerund
-terp = gerund.terp
+from gerund import terp
+from gerundive import RunForGlass
 
 
 jinja_environment = jinja2.Environment(
@@ -190,24 +190,11 @@ class MainHandler(webapp2.RequestHandler):
       if msg:
         answer = "?"
         try:
-          answer = terp.Run(msg)
+          answer = RunForGlass(self, msg)
+          return
         except Exception as ex:
           answer = ex
-        msg = '{{ %s }}\n%s' % (msg, answer)
-      body['text'] = msg
-
-    media_link = self.request.get('imageUrl')
-    if media_link:
-      if media_link.startswith('/'):
-        media_link = util.get_full_url(self, media_link)
-      resp = urlfetch.fetch(media_link, deadline=20)
-      media = MediaIoBaseUpload(
-          io.BytesIO(resp.content), mimetype='image/jpeg', resumable=True)
-    else:
-      media = None
-
-    # self.mirror_service is initialized in util.auth_required.
-    self.mirror_service.timeline().insert(body=body, media_body=media).execute()
+    raise Exception('DONT GET HERE NO MORE %s' % answer)
     return  'A timeline item has been inserted.'
 
   def _insert_paginated_item(self):

@@ -31,8 +31,8 @@ from google.appengine.api import urlfetch
 from model import Credentials
 import util
 
-import gerund
-terp = gerund.terp
+from gerund import terp
+from gerundive import RunForGlass
 
 DOUBLE_BRACE = re.compile('{{').search
 
@@ -102,53 +102,11 @@ class NotifyHandler(webapp2.RequestHandler):
           return
 
         try:
-          z = terp.Run(note_text)
+          z = RunForGlass(self, note_text, item=item)
         except Exception as ex:
           z = "ERROR: %s" % ex
 
-        item['text'] = "{{ %s }}\n%s" % (note_text, z)
-        logging.info("notify/user_action/text = %s", item['text'])
-        item['html'] = None
-        item['menuItems'] = [{ 'action': 'REPLY' }, { 'action': 'DELETE' }];
-
-        self.mirror_service.timeline().update(
-            id=item['id'], body=item).execute()
-
-        media = None
-        if type(z) is tuple and len(z) > 1: # ticks= is last.
-          for zi in z:
-            logging.info("z[i] = %s", zi)
-
-          yy = ''
-          # Should be a list, with last element (top of stack) a list.
-          # Actually, last is 'ticks=...', so next-to-last:
-          tos = z[-2]
-          if type(tos) is list and len(tos) > 0:
-            for y in tos:
-              logging.info("y = %s", y)
-              # If items in that TOS are lists of 9, append to yy.
-              if type(y) is list and len(y) == 9:
-                yy += ','.join([str(int(yi)) for yi in y]) + ',,,'
-                logging.info("yy = %s", yy)
-        
-            if len(yy):
-              body = {
-                'notification': {'level': 'DEFAULT'},
-                'text': '',
-                'menuItems': [{ 'action': 'REPLY' }, { 'action': 'DELETE' }]
-              }
-              media_link = 'http://node1.yak.net:2018/%s' % yy
-              logging.info("fetching = %s", media_link)
-              resp = urlfetch.fetch(media_link, deadline=10)
-              logging.info("len resp.content = %s", len(resp.content))
-              media = MediaIoBaseUpload(
-                  io.BytesIO(resp.content), mimetype='image/png', resumable=True)
-
-              logging.info("pushing image to timeline")
-              self.mirror_service.timeline().insert(body=body, media_body=media).execute()
-              logging.info("pushed image to timeline")
-
-        logging.info("END NOTIFY")
+        logging.info("END NOTIFY: %s", z)
 
       else:
         logging.info(
